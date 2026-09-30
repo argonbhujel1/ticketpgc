@@ -1,0 +1,26 @@
+{% extends "public/base.html" %}
+{% block title %}Your Details{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="steps">
+      <span>1 Match</span><span class="on">2 Details</span><span>3 Payment</span><span>4 Ticket</span>
+    </div>
+    <form method="post" class="form-card">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2 style="margin-bottom:8px">Buyer Details</h2>
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:16px">
+        {{ match.display_name }} · {{ cart.class_name }} × {{ cart.quantity }}
+      </p>
+      <label>Full Name *</label>
+      <input name="name" required maxlength="120" placeholder="Your full name">
+      <label>Phone *</label>
+      <input name="phone" required maxlength="30" placeholder="98XXXXXXXX">
+      <label>Email (optional)</label>
+      <input name="email" type="email" maxlength="120" placeholder="you@email.com" required>
+      <p style="font-size:0.8rem;color:var(--muted);margin:-8px 0 12px">Required — ticket ID + PNG will be sent to this email after confirmation.</p>
+      <button type="submit" class="btn btn-gold btn-block">CONTINUE TO PAYMENT</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

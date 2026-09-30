@@ -1,0 +1,34 @@
+{% extends "admin/base.html" %}
+{% block title %}Matches{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+  <h2>Matches</h2>
+  <a class="btn" href="{{ url_for('admin.match_new') }}">+ New Match</a>
+</div>
+<form method="post" action="{{ url_for('admin.match_bulk_delete') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=true)">Select all</button>
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=false)">Clear</button>
+    <button data-confirm="Delete selected matches AND related classes/bookings/tickets?" type="submit" class="btn" style="background:#c62828" >Delete selected</button>
+  </div>
+  <table>
+    <tr><th></th><th>ID</th><th>Fixture</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr>
+    {% for m in matches %}
+    <tr>
+      <td><input class="row-cb" type="checkbox" name="ids" value="{{ m.id }}"></td>
+      <td>{{ m.id }}</td>
+      <td>{{ m.display_name }}{% if m.title %}<br><small style="color:var(--muted)">{{ m.title }}</small>{% endif %}</td>
+      <td>{{ m.match_date.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{{ m.venue }}</td>
+      <td>{{ m.status }}</td>
+      <td style="white-space:nowrap">
+        <a class="btn btn-outline" href="{{ url_for('admin.match_edit', id=m.id) }}">Edit</a>
+        <button data-confirm="Delete this match and related data?" formaction="{{ url_for('admin.match_delete', id=m.id) }}" formmethod="post" class="btn" style="background:#c62828"
+          >Delete</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</form>
+{% endblock %}

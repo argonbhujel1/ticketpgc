@@ -1,0 +1,30 @@
+{% extends "public/base.html" %}
+{% block title %}Highlights · {{ site_name }}{% endblock %}
+{% block meta_description %}Match highlights and videos from {{ site_name }} {{ site_year }}.{% endblock %}
+{% block content %}
+<section class="section highlight-section" id="highlight">
+  <div class="container">
+    <h1 class="section-title">Match Highlights</h1>
+    {% if highlights %}
+    <div class="highlight-grid">
+      {% for h in highlights %}
+      <div class="highlight-card">
+        {% if h.title %}<h2 class="highlight-title">{{ h.title }}</h2>{% endif %}
+        <div class="yt-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/{{ h.youtube_id }}?rel=0"
+            title="{{ h.title or 'Match highlight' }}"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            loading="lazy"></iframe>
+        </div>
+        {% if h.description %}<p class="highlight-desc">{{ h.description }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="text-align:center;color:var(--muted);margin-top:24px">Highlights will appear here soon.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

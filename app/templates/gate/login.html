@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PGC Gate">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-180.png') }}">
+  <title>Gate Login · PGC</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    body.gate-login {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background:
+        linear-gradient(180deg, rgba(7,11,20,0.75) 0%, rgba(7,11,20,0.92) 100%),
+        radial-gradient(ellipse at 50% 0%, rgba(201,162,39,0.18), transparent 55%),
+        #070b14;
+      padding: env(safe-area-inset-top, 0px) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+    .gate-login main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 0 !important;
+    }
+    .gate-card {
+      width: min(400px, 100%);
+      background: rgba(13, 21, 38, 0.92);
+      border: 1px solid rgba(201,162,39,0.35);
+      border-radius: 20px;
+      padding: 28px 22px;
+      box-shadow: 0 0 48px rgba(201,162,39,0.12), 0 16px 40px rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+    }
+    .gate-card .logo-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .gate-card .logo-row img {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: contain;
+      background: #fff;
+      border: 2px solid var(--gold, #c9a227);
+    }
+    .gate-card h1 {
+      color: var(--gold, #c9a227);
+      font-size: 1.2rem;
+      text-align: center;
+      margin: 0;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+    }
+    .gate-card .sub {
+      text-align: center;
+      color: var(--muted, #9aa3b2);
+      font-size: 0.85rem;
+      margin: 6px 0 22px;
+    }
+    .gate-card label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted, #9aa3b2);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .gate-card input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0a0e18;
+      color: #fff;
+      margin-bottom: 14px;
+      box-sizing: border-box;
+      font-size: 16px;
+      min-height: 48px;
+    }
+    .gate-card input:focus {
+      outline: none;
+      border-color: var(--gold, #c9a227);
+      box-shadow: 0 0 0 3px rgba(201,162,39,0.2);
+    }
+    .gate-card .btn-enter {
+      width: 100%;
+      margin-top: 6px;
+      min-height: 52px;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+    }
+    .gate-card .err {
+      background: rgba(229,57,53,0.15);
+      border: 1px solid #e53935;
+      color: #ffcdd2;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+    }
+    .gate-back {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      color: var(--muted, #9aa3b2);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .gate-back:hover { color: var(--gold-light, #ffd56a); }
+    /* hide public bottom nav on this page */
+    .bottom-nav { display: none !important; }
+  </style>
+</head>
+<body class="app-shell gate-login">
+  <main>
+    <div class="gate-card">
+      <div class="logo-row">
+        <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="PGC" width="72" height="72">
+        <h1>GATE LOGIN</h1>
+      </div>
+      <p class="sub">Staff only — ticket scanning access</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for c,m in messages %}<div class="err">{{ m }}</div>{% endfor %}
+      {% endwith %}
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Username</label>
+        <input name="username" required autocomplete="username" placeholder="Gate username">
+        <label>Password</label>
+        <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••">
+        <button class="btn btn-gold btn-enter" type="submit">ENTER GATE</button>
+      </form>
+      <a class="gate-back" href="{{ url_for('public.home') }}">← Back to website</a>
+    </div>
+  </main>
+</body>
+</html>

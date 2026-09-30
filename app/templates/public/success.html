@@ -1,0 +1,70 @@
+{% extends "public/base.html" %}
+{% block title %}{% if booking.payment_status == 'paid' %}Ticket Ready{% else %}Booking Received{% endif %} · {{ site_name }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container success-box">
+    <div class="steps">
+      <span>1 Match</span><span>2 Details</span><span>3 Payment</span><span class="on">4 Ticket</span>
+    </div>
+
+    {% if booking.payment_status == 'paid' %}
+    <div class="check">✓</div>
+    <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:8px">PAYMENT SUCCESSFUL!</h1>
+    <p style="color:var(--muted);margin-bottom:8px">Your ticket has been issued.</p>
+    <div style="max-width:480px;margin:16px auto;padding:14px 16px;border-radius:12px;
+                background:rgba(201,162,39,0.12);border:1px solid var(--gold);text-align:left;font-size:0.95rem">
+      <strong style="color:var(--gold-light)">You will receive a mail with your ticket.</strong>
+      {% if booking.buyer_email %}
+      <p style="margin-top:10px;color:var(--muted)">Sent to: <span style="color:var(--text)">{{ booking.buyer_email }}</span></p>
+      {% endif %}
+      <p style="margin-top:8px;font-size:0.85rem;color:var(--muted)">You can also download below right now.</p>
+    </div>
+    {% else %}
+    <div class="check" style="border-color:var(--gold);background:rgba(201,162,39,0.15);color:var(--gold-light)">…</div>
+    <h1 style="font-size:1.4rem;font-weight:800;color:var(--gold-light);margin-bottom:8px">BOOKING RECEIVED</h1>
+    <p style="color:var(--muted);margin-bottom:8px">Payment proof submitted.</p>
+    <div style="max-width:480px;margin:16px auto;padding:14px 16px;border-radius:12px;
+                background:rgba(201,162,39,0.12);border:1px solid var(--gold);text-align:left;font-size:0.95rem">
+      <strong style="color:var(--gold-light)">You will receive a mail after your booking is approved.</strong>
+      {% if booking.buyer_email %}
+      <p style="margin-top:10px;color:var(--muted)">We will email: <span style="color:var(--text)">{{ booking.buyer_email }}</span></p>
+      {% endif %}
+      <p style="margin-top:8px;font-size:0.85rem;color:var(--muted)">
+        Save your booking code. Ticket (with QR) arrives by email once payment is confirmed by admin.
+      </p>
+    </div>
+    {% endif %}
+
+    <p style="margin:12px 0;font-size:0.9rem;color:var(--muted)">Booking</p>
+    <p style="font-weight:800;letter-spacing:0.04em;color:var(--gold)">{{ booking.booking_code }}</p>
+
+    {% for t in tickets %}
+    <div style="margin-top:28px">
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:8px">
+        Ticket {{ loop.index }} · <strong style="color:var(--text)">{{ t.ticket_code }}</strong>
+      </p>
+      <div class="ticket-frame">
+        <img src="{{ url_for('public.ticket_preview', code=t.ticket_code) }}"
+             alt="Official ticket {{ t.ticket_code }}" width="1200" height="420">
+      </div>
+      <div class="actions">
+        <a class="btn btn-gold" href="{{ url_for('public.ticket_view', code=t.ticket_code) }}">VIEW TICKET</a>
+        <a class="btn btn-outline" href="{{ url_for('public.ticket_png', code=t.ticket_code) }}">DOWNLOAD PNG</a>
+        <a class="btn btn-outline" href="{{ url_for('public.ticket_pdf', code=t.ticket_code) }}">DOWNLOAD PDF</a>
+        <button type="button" class="btn btn-outline"
+          onclick="navigator.clipboard.writeText('{{ t.ticket_code }}');this.textContent='COPIED!'">COPY TICKET NUMBER</button>
+      </div>
+    </div>
+    {% else %}
+    <p style="margin-top:24px;color:var(--muted);max-width:420px;margin-left:auto;margin-right:auto">
+      You will receive a mail after your booking is approved.
+    </p>
+    {% endfor %}
+
+    <p style="margin-top:28px;color:var(--muted);font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto">
+      Keep your booking code safe. Single-use QR at the gate.
+    </p>
+  </div>
+</section>
+{% endblock %}

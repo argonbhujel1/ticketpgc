@@ -1,0 +1,49 @@
+{% extends "public/base.html" %}
+{% block title %}Booking Status · {{ site_name }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:520px">
+    <h1 class="section-title">See your booking status</h1>
+    <p style="color:var(--muted);margin-bottom:16px">Enter your booking code and email used at checkout.</p>
+    <form method="post" class="glass-card" style="padding:20px;border-radius:14px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Booking code</label>
+      <input name="booking_code" required placeholder="PGC-BOOK-2026-XXXXXX" value="{{ booking_code or '' }}">
+      <label>Email</label>
+      <input name="email" type="email" required placeholder="you@email.com" value="{{ email or '' }}">
+      <button class="btn btn-gold" type="submit" style="margin-top:12px">Check status</button>
+    </form>
+
+    {% if booking %}
+    <div class="glass-card" style="margin-top:24px;padding:20px;border-radius:14px">
+      <p><b>Code:</b> {{ booking.booking_code }}</p>
+      <p><b>Name:</b> {{ booking.buyer_name }}</p>
+      <p><b>Payment:</b>
+        {% if booking.payment_status == 'paid' %}
+        <span style="color:#81c784">Confirmed / Approved</span>
+        {% else %}
+        <span style="color:#ffd54f">Pending approval</span>
+        {% endif %}
+      </p>
+      <p><b>Amount:</b> NPR {{ '%.0f'|format(booking.total_amount|float) }}</p>
+      {% if booking.payment_status == 'paid' %}
+      <p style="color:var(--muted);margin-top:12px">Tickets issued. Check your email or open ticket links:</p>
+      <ul>
+        {% for t in tickets %}
+        <li><a href="{{ url_for('public.ticket_view', code=t.ticket_code) }}" style="color:var(--gold)">{{ t.ticket_code }}</a>
+          · {{ t.status }}</li>
+        {% else %}
+        <li>No tickets listed yet — contact support if email not received.</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p style="color:var(--muted);margin-top:12px">You will receive a mail after your booking is approved.</p>
+      {% endif %}
+    </div>
+    {% elif searched %}
+    <p style="margin-top:16px;color:#e57373">No booking found for that code and email.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

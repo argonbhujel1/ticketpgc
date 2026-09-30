@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}
+{% block title %}Tickets{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:16px">Tickets</h2>
+<form method="post" action="{{ url_for('admin.ticket_bulk_delete') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=true)">Select all</button>
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=false)">Clear</button>
+    <button type="submit" class="js-bulk-delete" data-confirm="Delete selected items?" class="btn" style="background:#c62828" >Delete selected</button>
+  </div>
+  <table>
+    <tr><th></th><th>Code</th><th>Holder</th><th>Status</th><th>Match</th><th></th></tr>
+    {% for t in tickets %}
+    <tr>
+      <td><input class="row-cb" type="checkbox" name="ids" value="{{ t.id }}"></td>
+      <td>{{ t.ticket_code }}</td>
+      <td>{{ t.holder_name }}</td>
+      <td>{{ t.status }}</td>
+      <td>{{ t.match.display_name if t.match else t.match_id }}</td>
+      <td style="white-space:nowrap">
+        <a class="btn btn-outline" href="{{ url_for('public.ticket_view', code=t.ticket_code) }}" target="_blank">View</a>
+        <button data-confirm="Delete this ticket?" formaction="{{ url_for('admin.ticket_delete', id=t.id) }}" formmethod="post" class="btn" style="background:#c62828"
+          >Delete</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</form>
+{% endblock %}

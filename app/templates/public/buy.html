@@ -1,0 +1,53 @@
+{% extends "public/base.html" %}
+{% block title %}Buy Ticket · {{ match.display_name }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="steps">
+      <span class="on">1 Match</span><span>2 Details</span><span>3 Payment</span><span>4 Ticket</span>
+    </div>
+    <h1 class="section-title">{{ match.display_name }}</h1>
+    <p class="meta" style="margin-bottom:20px">📅 {{ match.match_date.strftime('%d %b %Y · %I:%M %p') }} · 📍 {{ match.venue }}</p>
+
+    <form method="post" class="form-card" style="max-width:520px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Select Ticket Class</label>
+      <div class="class-list">
+        {% for c in classes %}
+        <label class="class-option">
+          <input type="radio" name="class_id" value="{{ c.id }}" {% if loop.first %}checked{% endif %} {% if c.available < 1 %}disabled{% endif %}>
+          <div class="info">
+            <strong>{{ c.name }}</strong>
+            <div style="color:var(--muted);font-size:0.85rem">{{ c.zone }} · {{ c.gate }} · Available: {{ c.available }}</div>
+          </div>
+          <div class="price">Rs. {{ '%.0f'|format(c.price|float) }}</div>
+        </label>
+        {% else %}
+        <p style="color:var(--muted)">No ticket classes available.</p>
+        {% endfor %}
+      </div>
+
+      <div class="qty-row">
+        <label style="margin:0">Quantity</label>
+        <div class="qty-ctrl">
+          <button type="button" onclick="chg(-1)">−</button>
+          <input type="number" name="quantity" id="qty" value="1" min="1" max="10" readonly>
+          <button type="button" onclick="chg(1)">+</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-gold btn-block" {% if not classes %}disabled{% endif %}>CONTINUE</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+function chg(d){
+  const el=document.getElementById('qty');
+  let v=parseInt(el.value||1)+d;
+  v=Math.max(1,Math.min(10,v));
+  el.value=v;
+}
+</script>
+{% endblock %}

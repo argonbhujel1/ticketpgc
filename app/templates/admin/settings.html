@@ -1,0 +1,99 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:16px">Settings</h2>
+<form method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <h3 style="color:var(--gold);margin:16px 0 8px">Site</h3>
+  <label>site_name</label>
+  <input name="site_name" value="{{ values.site_name }}">
+  <label>site_tagline</label>
+  <input name="site_tagline" value="{{ values.site_tagline }}">
+  <label>hero_title</label>
+  <input name="hero_title" value="{{ values.hero_title }}">
+
+  <h3 style="color:var(--gold);margin:20px 0 8px">Payment methods</h3>
+  <p style="color:var(--muted);font-size:0.85rem;margin-bottom:8px">Use <code>true</code> or <code>false</code></p>
+  <label>payment_esewa_enabled</label>
+  <input name="payment_esewa_enabled" value="{{ values.payment_esewa_enabled }}">
+  <label>payment_connectips_enabled</label>
+  <input name="payment_connectips_enabled" value="{{ values.payment_connectips_enabled }}">
+  <label>payment_qr_enabled</label>
+  <input name="payment_qr_enabled" value="{{ values.payment_qr_enabled }}">
+  <label>payment_instructions</label>
+  <input name="payment_instructions" value="{{ values.payment_instructions }}">
+
+  <h3 style="color:var(--gold);margin:20px 0 8px">Payment QR image</h3>
+  {% if values.payment_qr_image %}
+  <img src="{{ url_for('admin.uploaded_file', filename=values.payment_qr_image) }}"
+       alt="Payment QR" style="max-width:200px;border-radius:12px;border:1px solid var(--border);margin-bottom:10px">
+  {% else %}
+  <p style="color:var(--muted)">No QR uploaded yet.</p>
+  {% endif %}
+  <label>Upload payment QR</label>
+  <input type="file" name="payment_qr_file" accept="image/*">
+
+  <h3 style="color:var(--gold);margin:20px 0 8px">Ticket design</h3>
+  <label>ticket_footer_credit</label>
+  <input name="ticket_footer_credit" value="{{ values.ticket_footer_credit }}" placeholder="Engineered by Argon Bhujel · Pathari Gold Cup">
+
+  {% if values.ticket_background %}
+  <p style="margin:8px 0">Current ticket background:</p>
+  <img src="{{ url_for('admin.uploaded_file', filename=values.ticket_background) }}"
+       alt="BG" style="max-width:320px;border-radius:10px;border:1px solid var(--border);margin-bottom:10px">
+  {% else %}
+  <p style="color:var(--muted);margin:8px 0">No custom background — default stadium gradient used.</p>
+  {% endif %}
+  <label>Upload ticket background (stadium photo recommended)</label>
+  <input type="file" name="ticket_background_file" accept="image/*">
+
+  
+  <h3 style="color:var(--gold);margin:20px 0 8px">Homepage background</h3>
+  {% if values.home_background %}
+  <img src="{{ url_for('admin.uploaded_file', filename=values.home_background) }}"
+       style="max-width:320px;border-radius:10px;margin-bottom:8px">
+  {% endif %}
+  <label>Upload homepage hero background</label>
+  <input type="file" name="home_background_file" accept="image/*">
+
+  
+  <h3 style="color:var(--gold);margin:20px 0 8px">Website logo (navbar)</h3>
+  {% if values.site_logo %}
+  <img src="{{ url_for('admin.uploaded_file', filename=values.site_logo) }}" style="height:56px;margin-bottom:8px;background:#fff;border-radius:8px;padding:4px">
+  {% endif %}
+  <label>Upload site logo (pgcg style)</label>
+  <input type="file" name="site_logo_file" accept="image/*">
+
+  <h3 style="color:var(--gold);margin:20px 0 8px">Ticket strip trophy logo</h3>
+  <p style="color:var(--muted);font-size:0.85rem">Shows on left [PATHARI GOLD CUP] strip</p>
+  {% if values.ticket_trophy_logo %}
+  <img src="{{ url_for('admin.uploaded_file', filename=values.ticket_trophy_logo) }}"
+       style="height:64px;margin-bottom:8px">
+  {% endif %}
+  <label>Upload trophy / brand logo</label>
+  <input type="file" name="ticket_trophy_file" accept="image/*">
+
+  
+  <h3 style="color:var(--gold);margin:20px 0 8px">Match highlight (YouTube)</h3>
+  <p style="color:var(--muted);font-size:0.85rem">Paste YouTube link — plays on homepage under hero.</p>
+  <label>YouTube URL or video ID</label>
+  <input name="highlight_youtube" value="{{ values.highlight_youtube }}" placeholder="https://www.youtube.com/watch?v=...">
+  {% if values.highlight_youtube %}
+  <p style="font-size:0.85rem;color:var(--muted)">Current ID: {{ values.highlight_youtube }}</p>
+  {% endif %}
+
+  <h3 style="color:var(--gold);margin:20px 0 8px">Email delivery</h3>
+
+  <p style="color:var(--muted);font-size:0.85rem;line-height:1.5">
+    Configure on <b>Vercel → Environment Variables</b>:<br>
+    <code>MAIL_SERVER</code>, <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code>,
+    <code>MAIL_DEFAULT_SENDER</code>, <code>SITE_URL</code><br>
+    After confirm: <b>Bookings → View → Resend Email</b>
+  </p>
+
+  <div style="margin-top:16px">
+    <button class="btn" type="submit">Save settings</button>
+  </div>
+</form>
+{% endblock %}

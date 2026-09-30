@@ -1,0 +1,37 @@
+{% extends "admin/base.html" %}
+{% block title %}Teams{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+  <h2>Teams</h2>
+  <a class="btn" href="{{ url_for('admin.team_new') }}">+ Team</a>
+</div>
+<form method="post" action="{{ url_for('admin.team_bulk_delete') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=true)">Select all</button>
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=false)">Clear</button>
+    <button type="submit" class="js-bulk-delete" data-confirm="Delete selected items?" class="btn" style="background:#c62828" >Delete selected</button>
+  </div>
+  <table>
+    <tr><th></th><th>Logo</th><th>Name</th><th>Short</th><th>Active</th><th></th></tr>
+    {% for t in teams %}
+    <tr>
+      <td><input class="row-cb" type="checkbox" name="ids" value="{{ t.id }}"></td>
+      <td>
+        {% if t.logo %}
+        <img src="{{ url_for('admin.uploaded_file', filename=t.logo) }}" style="height:40px;width:40px;object-fit:contain;border-radius:50%;background:#111">
+        {% else %}<span style="color:var(--muted)">—</span>{% endif %}
+      </td>
+      <td>{{ t.name }}</td>
+      <td>{{ t.short_name }}</td>
+      <td>{{ t.is_active }}</td>
+      <td style="white-space:nowrap">
+        <a class="btn btn-outline" href="{{ url_for('admin.team_edit', id=t.id) }}">Edit</a>
+        <button data-confirm="Delete this team?" formaction="{{ url_for('admin.team_delete', id=t.id) }}" formmethod="post" class="btn" style="background:#c62828"
+          >Delete</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</form>
+{% endblock %}

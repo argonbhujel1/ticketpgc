@@ -1,0 +1,44 @@
+{% extends "public/base.html" %}
+{% block title %}{{ ticket.ticket_code }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container" style="text-align:center">
+    <h1 style="font-size:1.1rem;color:var(--muted);font-weight:600;margin-bottom:6px">
+      {{ ticket.match.display_name if ticket.match else '' }}
+    </h1>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:4px">
+      {% if ticket.match %}{{ ticket.match.match_date.strftime('%d %b %Y · %H:%M') }} · {{ ticket.match.venue }}{% endif %}
+    </p>
+
+    <!-- LARGE ticket - full width -->
+    <div class="ticket-frame" style="margin-top:20px">
+      <img src="{{ url_for('public.ticket_preview', code=ticket.ticket_code) }}"
+           alt="{{ ticket.ticket_code }}" width="1200" height="420">
+    </div>
+
+    <p style="margin-top:18px;font-size:1.3rem;font-weight:900;color:var(--gold);letter-spacing:0.04em">
+      {{ ticket.ticket_code }}
+    </p>
+    <p style="font-weight:800;font-size:1.15rem">{{ ticket.holder_name }}</p>
+    <p style="color:var(--muted)">
+      {{ ticket.ticket_class.name if ticket.ticket_class else '' }}
+      · Rs. {{ '%.2f'|format(ticket.ticket_class.price|float) if ticket.ticket_class else '' }}
+    </p>
+    <p style="margin-top:8px">
+      {% if ticket.status == 'valid' %}
+      <span class="btn btn-sm" style="background:#1b5e20;color:#fff;cursor:default">VALID</span>
+      {% elif ticket.status == 'used' %}
+      <span class="btn btn-sm" style="background:#555;color:#fff;cursor:default">USED</span>
+      {% else %}
+      <span class="btn btn-sm btn-red" style="cursor:default">{{ ticket.status|upper }}</span>
+      {% endif %}
+    </p>
+
+    <div class="actions" style="margin-top:24px">
+      <a class="btn btn-gold" href="{{ url_for('public.ticket_png', code=ticket.ticket_code) }}">DOWNLOAD PNG</a>
+      <a class="btn btn-outline" href="{{ url_for('public.ticket_pdf', code=ticket.ticket_code) }}">DOWNLOAD PDF</a>
+    </div>
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:20px">Present this QR at the gate for entry. Single use only.</p>
+  </div>
+</section>
+{% endblock %}

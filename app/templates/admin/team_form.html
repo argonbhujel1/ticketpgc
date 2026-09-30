@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if team %}Edit{% else %}New{% endif %} Team{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:16px">{% if team %}Edit Team{% else %}New Team{% endif %}</h2>
+<form method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Name *</label>
+  <input name="name" required value="{{ team.name if team else '' }}">
+  <label>Short name</label>
+  <input name="short_name" value="{{ team.short_name if team else '' }}" placeholder="Pathari FC">
+  <label>Primary color</label>
+  <input name="primary_color" value="{{ team.primary_color if team else '#1a237e' }}">
+  <label>Team logo (png/jpg)</label>
+  {% if team and team.logo %}
+  <p style="margin-bottom:8px">
+    <img src="{{ url_for('admin.uploaded_file', filename=team.logo) }}" alt="logo"
+         style="height:64px;width:64px;object-fit:contain;border-radius:50%;border:2px solid var(--gold);background:#111">
+  </p>
+  {% endif %}
+  <input type="file" name="logo" accept="image/png,image/png,image/webp,image/gif">
+  <div style="margin-top:14px">
+    <button class="btn" type="submit">Save team</button>
+    <a class="btn btn-outline" href="{{ url_for('admin.teams') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

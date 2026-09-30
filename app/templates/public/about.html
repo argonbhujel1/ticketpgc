@@ -1,0 +1,65 @@
+{% extends "public/base.html" %}
+{% block title %}About · {{ site_name }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:720px">
+    <h1 style="color:var(--gold-light);margin-bottom:12px">Pathari Sanischare Gold Cup 2026</h1>
+    <p style="color:var(--muted);line-height:1.7">
+      Organized by <strong style="color:var(--text)">Pathari-11 Football Club</strong> (Morang).
+      All matches at <strong style="color:var(--text)">Pathari Rangashala, Jate Mode</strong> · kick-off <strong>3:00 PM</strong>.
+    </p>
+
+    <h2 style="margin:24px 0 12px;color:var(--gold)">Teams</h2>
+    <ol style="line-height:1.9;color:var(--text)">
+      <li>Pathari-11 Football Club — Organizer, Morang</li>
+      <li>United Kurseong Football Club (UKFC) — India</li>
+      <li>Three Star Club — Lalitpur</li>
+      <li>Jhapa-11 FC — Jhapa</li>
+      <li>New Road Team (NRT) — Kathmandu</li>
+      <li>Salhesh Yuwa Club — Siraha</li>
+      <li>Nepal Police Club — Kathmandu</li>
+      <li>Red Horse Football Club — Ilam</li>
+    </ol>
+
+    <h2 style="margin:24px 0 12px;color:var(--gold)">Fixture</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:0.95rem">
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <th style="text-align:left;padding:8px">Date</th>
+        <th style="text-align:left;padding:8px">Match</th>
+      </tr>
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <td style="padding:8px">असोज १७ · 3 Oct</td>
+        <td style="padding:8px"><b>Match 1</b> — Pathari-11 🆚 UKFC</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <td style="padding:8px">असोज १८ · 4 Oct</td>
+        <td style="padding:8px"><b>Match 2</b> — NRT 🆚 Salhesh</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <td style="padding:8px">असोज १९ · 5 Oct</td>
+        <td style="padding:8px"><b>Match 3</b> — Three Star 🆚 Jhapa-11</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <td style="padding:8px">असोज २० · 6 Oct</td>
+        <td style="padding:8px"><b>Match 4</b> — Nepal Police 🆚 Red Horse</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <td style="padding:8px">असोज २१ · 7 Oct</td>
+        <td style="padding:8px"><b>Semi-final 1</b> — Winner of Match 1 🆚 Winner of Match 2</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <td style="padding:8px">असोज २२ · 8 Oct</td>
+        <td style="padding:8px"><b>Semi-final 2</b> — Winner of Match 3 🆚 Winner of Match 4</td>
+      </tr>
+      <tr>
+        <td style="padding:8px">असोज २४ · 10 Oct</td>
+        <td style="padding:8px"><b>Final</b> — Winner of SF1 🆚 Winner of SF2</td>
+      </tr>
+    </table>
+    <p style="margin-top:16px;color:var(--muted);font-size:0.9rem">
+      Venue: Pathari Rangashala, Jate Mode · All kick-offs 3:00 PM<br>
+      After each round, admin can edit semi/final teams to the real winners.
+    </p>
+  </div>
+</section>
+{% endblock %}

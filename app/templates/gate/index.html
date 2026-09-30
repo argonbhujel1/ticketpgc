@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PGC Gate">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-180.png') }}">
+  <title>PGC Gate Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --gold: #c9a227;
+      --gold-light: #ffd56a;
+      --bg: #070b14;
+      --card: #0d1526;
+      --muted: #8b93a7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(201,162,39,0.14), transparent 50%),
+        var(--bg);
+      color: #f0f2f5;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      -webkit-font-smoothing: antialiased;
+    }
+    .gate-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .gate-header img {
+      width: 56px; height: 56px; border-radius: 50%;
+      object-fit: contain; background: #fff;
+      border: 2px solid var(--gold);
+    }
+    h1 {
+      color: var(--gold);
+      font-size: 1.15rem;
+      letter-spacing: 0.08em;
+      margin: 0;
+      font-weight: 800;
+    }
+    .user-line {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin: 0 0 12px;
+    }
+    .user-line a { color: var(--gold); font-weight: 600; text-decoration: none; }
+    .stats {
+      display: flex;
+      gap: 10px;
+      margin: 8px 0 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 400px;
+    }
+    .stats div {
+      flex: 1;
+      min-width: 100px;
+      background: var(--card);
+      border: 1px solid rgba(201,162,39,0.3);
+      border-radius: 14px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .stats strong { display: block; font-size: 1.5rem; color: var(--gold-light); }
+    .stats .rej strong { color: #e57373; }
+    .stats .ok strong { color: #81c784; }
+    .stats span { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
+    #reader {
+      width: min(360px, 100%);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid var(--gold);
+      background: #111;
+      min-height: 220px;
+    }
+    .manual {
+      margin-top: 16px;
+      width: min(360px, 100%);
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      background: var(--card);
+      color: #fff;
+      font-size: 16px;
+      text-align: center;
+      min-height: 50px;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,162,39,0.2);
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      min-height: 50px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 999px;
+      background: var(--gold);
+      color: #111;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 0.95rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+    }
+    #result {
+      margin-top: 16px;
+      padding: 20px 16px;
+      border-radius: 16px;
+      width: min(360px, 100%);
+      text-align: center;
+      display: none;
+    }
+    #result.ok { background: rgba(46,125,50,0.25); border: 2px solid #2e7d32; display: block; }
+    #result.bad { background: rgba(229,57,53,0.2); border: 2px solid #e53935; display: block; }
+    #result.used { background: rgba(255,167,38,0.2); border: 2px solid #ffa726; display: block; }
+    .hint { color: #666; font-size: 0.8rem; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="gate-header">
+    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="PGC" width="56" height="56">
+    <h1>GATE SCANNER</h1>
+  </div>
+  <p class="user-line">
+    {{ current_user.username }} · <a href="{{ url_for('gate.logout') }}">Logout</a>
+  </p>
+
+  <div class="stats">
+    <div class="ok"><strong id="entered">{{ entered }}</strong><span>Entered</span></div>
+    <div class="rej"><strong id="rejected">{{ rejected }}</strong><span>Rejected</span></div>
+  </div>
+
+  <div id="reader"></div>
+
+  <div class="manual">
+    <input id="code" type="text" inputmode="text" autocomplete="off" placeholder="Or type ticket code" autofocus>
+    <div class="btn-row">
+      <button type="button" onclick="scanManual()">Check code</button>
+      <button type="button" class="secondary" id="btnCam" onclick="toggleCam()">Stop camera</button>
+    </div>
+    <p class="hint">Point camera at QR · or enter code manually</p>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+  const CHECK_URL = "{{ url_for('gate.check') }}";
+  let html5QrCode = null;
+  let camOn = false;
+  let lastCode = '';
+  let lastAt = 0;
+
+  async function processCode(raw) {
+    const code = (raw || '').trim();
+    if (!code) return;
+    const now = Date.now();
+    if (code === lastCode && now - lastAt < 2500) return;
+    lastCode = code;
+    lastAt = now;
+
+    try {
+      const r = await fetch(CHECK_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code})
+      });
+      const d = await r.json();
+      if (d.entered != null) document.getElementById('entered').textContent = d.entered;
+      if (d.rejected != null) document.getElementById('rejected').textContent = d.rejected;
+      const el = document.getElementById('result');
+      el.className = d.ok ? 'ok' : (d.status === 'used' ? 'used' : 'bad');
+      el.style.display = 'block';
+      el.innerHTML = `<div style="font-size:1.35rem;font-weight:900">${d.message || d.status}</div>
+        <div style="margin-top:8px">${d.code || ''}</div>
+        <div>${d.holder || ''}</div>
+        <div style="color:#aaa;font-size:0.9rem">${d.match || ''} · ${d.class || ''}</div>`;
+      if (navigator.vibrate) navigator.vibrate(d.ok ? [40] : [80, 40, 80]);
+      setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 4000);
+    } catch (e) {
+      alert('Network error: ' + e);
+    }
+  }
+
+  function scanManual() {
+    processCode(document.getElementById('code').value);
+    document.getElementById('code').value = '';
+    document.getElementById('code').focus();
+  }
+
+  document.getElementById('code').addEventListener('keydown', e => {
+    if (e.key === 'Enter') scanManual();
+  });
+
+  function onScanSuccess(decodedText) {
+    processCode(decodedText);
+  }
+
+  async function startCam() {
+    if (!html5QrCode) {
+      html5QrCode = new Html5Qrcode('reader');
+    }
+    try {
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 8, qrbox: { width: 220, height: 220 } },
+        onScanSuccess,
+        () => {}
+      );
+      camOn = true;
+      document.getElementById('btnCam').textContent = 'Stop camera';
+    } catch (err) {
+      document.getElementById('reader').innerHTML =
+        '<p style="padding:24px;color:#888;text-align:center">Camera not available.<br>Use manual code entry.</p>';
+      document.getElementById('btnCam').style.display = 'none';
+    }
+  }
+
+  async function toggleCam() {
+    if (!html5QrCode) return;
+    if (camOn) {
+      try { await html5QrCode.stop(); } catch (e) {}
+      camOn = false;
+      document.getElementById('btnCam').textContent = 'Start camera';
+    } else {
+      await startCam();
+    }
+  }
+
+  startCam();
+  </script>
+</body>
+</html>

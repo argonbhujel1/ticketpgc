@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if match %}Edit{% else %}New{% endif %} Match{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:16px">{% if match %}Edit Match{% else %}New Match{% endif %}</h2>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Title</label>
+  <input name="title" value="{{ match.title if match and match.title else '' }}">
+  <label>Home Team</label>
+  <select name="home_team_id" required>
+    {% for t in teams %}
+    <option value="{{ t.id }}" {% if match and match.home_team_id==t.id %}selected{% endif %}>{{ t.name }}</option>
+    {% endfor %}
+  </select>
+  <label>Away Team</label>
+  <select name="away_team_id" required>
+    {% for t in teams %}
+    <option value="{{ t.id }}" {% if match and match.away_team_id==t.id %}selected{% endif %}>{{ t.name }}</option>
+    {% endfor %}
+  </select>
+  <label>Date & Time</label>
+  <input type="datetime-local" name="match_date" required
+    value="{% if match %}{{ match.match_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+  <label>Venue</label>
+  <input name="venue" value="{{ match.venue if match else 'Pathari, Morang' }}">
+  <label>Venue detail</label>
+  <input name="venue_detail" value="{{ match.venue_detail if match else 'Domalai Rajbanshi Ground' }}">
+  <label>Status</label>
+  <select name="status">
+    {% for s in ['upcoming','live','completed','cancelled'] %}
+    <option value="{{ s }}" {% if match and match.status==s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <label><input type="checkbox" name="is_featured" value="1" {% if match and match.is_featured %}checked{% endif %}> Featured</label>
+  <div style="margin-top:12px">
+    <button class="btn" type="submit">Save</button>
+    <a class="btn btn-outline" href="{{ url_for('admin.matches') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

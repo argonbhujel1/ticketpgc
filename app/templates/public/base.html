@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ site_name }} {{ site_year }} — Official Tickets{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Buy official tickets for Pathari Sanischare Gold Cup {{ site_year }}. Football tournament at Pathari Rangashala, Jate Mode. Secure online booking.{% endblock %}">
+  <meta name="keywords" content="Pathari Sanischare Gold Cup, Pathari Gold Cup, football tickets Nepal, Pathari Rangashala, Morang football, ticket booking">
+  <meta name="author" content="Pathari Sanischare Gold Cup">
+  <meta name="robots" content="{% block robots %}index, follow{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ request.url_root.rstrip('/') }}{{ request.path }}{% endblock %}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ site_name }}">
+  <meta property="og:title" content="{% block og_title %}{{ site_name }} {{ site_year }} — Official Tickets{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Official ticketing for Pathari Sanischare Gold Cup. Buy tickets online.{% endblock %}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/bg.png', _external=True) }}{% endblock %}">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block tw_title %}{{ site_name }} {{ site_year }}{% endblock %}">
+  <meta name="twitter:description" content="Official football tournament tickets — Pathari Sanischare Gold Cup.">
+  <meta name="twitter:image" content="{{ url_for('static', filename='images/bg.png', _external=True) }}">
+
+  <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#c9a227">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PGC Tickets">
+  <meta name="application-name" content="PGC Tickets">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-180.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/icon-180.png') }}">
+  <link rel="apple-touch-icon" sizes="192x192" href="{{ url_for('static', filename='images/icon-192.png') }}">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block head %}{% endblock %}
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    "name": "Pathari Sanischare Gold Cup {{ site_year }}",
+    "description": "Official football tournament at Pathari Rangashala, Jate Mode, Morang, Nepal.",
+    "url": "{{ request.url_root }}",
+    "image": "{{ url_for('static', filename='images/bg.png', _external=True) }}",
+    "location": {
+      "@type": "Place",
+      "name": "Pathari Rangashala",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Pathari",
+        "addressRegion": "Morang",
+        "addressCountry": "NP"
+      }
+    },
+    "organizer": {
+      "@type": "SportsOrganization",
+      "name": "Pathari-11 Football Club"
+    }
+  }
+  </script>
+</head>
+<body class="app-shell">
+  <header class="topnav">
+    <div class="container topnav-inner">
+      <a class="logo" href="{{ url_for('public.home') }}">
+        {% if site_logo_url %}
+        <img src="{{ site_logo_url }}" alt="{{ site_name }} logo" class="brand-logo" width="40" height="40">
+        {% else %}
+        <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="{{ site_name }} logo" class="brand-logo" width="40" height="40">
+        {% endif %}
+        <span>{{ site_name }} <small style="opacity:0.8;font-weight:600">{{ site_year }}</small></span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="{{ url_for('public.matches') }}">MATCHES</a>
+        <a href="{{ url_for('public.highlights') }}">HIGHLIGHT</a>
+        <a href="{{ url_for('public.about') }}">ABOUT</a>
+        <a href="{{ url_for('public.verify') }}">VERIFY</a>
+        <a href="{{ url_for('public.booking_status') }}">BOOKING STATUS</a>
+        <a class="btn btn-gold btn-sm" href="{{ url_for('public.matches') }}">Buy Ticket</a>
+      </nav>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <main>{% block content %}{% endblock %}</main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        {% if site_logo_url %}
+        <img src="{{ site_logo_url }}" alt="{{ site_name }}" class="footer-logo" width="72" height="72">
+        {% else %}
+        <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="{{ site_name }}" class="footer-logo" width="72" height="72">
+        {% endif %}
+        <div>
+          <strong class="footer-title">{{ site_name }}</strong>
+          <p class="footer-tag">{{ site_year }} · Official Ticketing</p>
+          <p class="footer-tagline">Football Unites Our Community</p>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <h4>Quick Links</h4>
+        <nav aria-label="Footer">
+          <a href="{{ url_for('public.home') }}">Home</a>
+          <a href="{{ url_for('public.matches') }}">Matches</a>
+          <a href="{{ url_for('public.matches') }}">Buy Tickets</a>
+          <a href="{{ url_for('public.highlights') }}">Highlights</a>
+          <a href="{{ url_for('public.about') }}">About</a>
+          <a href="{{ url_for('public.verify') }}">Verify Ticket</a>
+        </nav>
+      </div>
+
+      <div class="footer-partner">
+        <p class="partner-label">ONLINE TICKETING PARTNER</p>
+        <p class="partner-text">Structured &amp; engineered for secure digital tickets, bookings and gate verification.</p>
+        <a class="partner-btn" href="https://argan.com.np" target="_blank" rel="noopener noreferrer">
+          Engineered by BAM Studio →
+        </a>
+        <p class="partner-sub"><a href="https://argan.com.np" target="_blank" rel="noopener noreferrer">argan.com.np</a></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container footer-bottom-inner">
+        <span>© {{ site_year }} · Pathari Sanischare Gold Cup teams</span>
+        <span>Powered by <a href="https://argan.com.np" target="_blank" rel="noopener noreferrer">BAM Studio</a> — Online Ticketing Partner</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App-style bottom navigation (mobile) -->
+  <nav class="bottom-nav" aria-label="App navigation">
+    <a href="{{ url_for('public.home') }}" class="{% if request.endpoint == 'public.home' %}active{% endif %}">
+      <span class="ico" aria-hidden="true">🏠</span>
+      <span>Home</span>
+    </a>
+    <a href="{{ url_for('public.matches') }}" class="{% if request.endpoint in ('public.matches', 'public.match_detail', 'public.buy', 'public.payment') %}active{% endif %}">
+      <span class="ico" aria-hidden="true">⚽</span>
+      <span>Matches</span>
+    </a>
+    <a href="{{ url_for('public.matches') }}" class="bn-cta {% if request.endpoint == 'public.buy' %}active{% endif %}">
+      <span class="ico ico-cta" aria-hidden="true">🎫</span>
+      <span>Buy</span>
+    </a>
+    <a href="{{ url_for('public.highlights') }}" class="{% if request.endpoint == 'public.highlights' %}active{% endif %}">
+      <span class="ico" aria-hidden="true">🎬</span>
+      <span>Highlights</span>
+    </a>
+    <a href="{{ url_for('public.verify') }}" class="{% if request.endpoint in ('public.verify', 'public.booking_status') %}active{% endif %}">
+      <span class="ico" aria-hidden="true">✓</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
+

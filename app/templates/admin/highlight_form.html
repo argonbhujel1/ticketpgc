@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if item %}Edit Highlight{% else %}New Highlight{% endif %}{% endblock %}
+{% block content %}
+<h2>{% if item %}Edit Highlight{% else %}New Highlight{% endif %}</h2>
+<p style="color:var(--muted);margin-bottom:16px;line-height:1.5">
+  Paste a <b>YouTube link</b> <i>or</i> full <b>embed code</b> (iframe). Homepage navbar → HIGHLIGHT will show it.
+</p>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Title</label>
+  <input name="title" value="{{ item.title if item else 'Match Highlight' }}" placeholder="e.g. Opening Match Highlights">
+
+  <label>YouTube link <span style="opacity:0.7">or</span> embed code</label>
+  <textarea name="youtube_url" rows="5" required
+    placeholder="https://www.youtube.com/watch?v=xxxxx
+
+OR embed:
+<iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/xxxxx&quot; ...></iframe>">{% if item %}https://www.youtube.com/watch?v={{ item.youtube_id }}{% endif %}</textarea>
+
+  {% if item %}
+  <p style="font-size:0.85rem;color:var(--muted)">Current video ID: <code>{{ item.youtube_id }}</code></p>
+  <div style="max-width:420px;margin:8px 0 16px">
+    <div class="yt-wrap" style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;border:1px solid #333">
+      <iframe src="https://www.youtube.com/embed/{{ item.youtube_id }}?rel=0"
+        style="position:absolute;inset:0;width:100%;height:100%;border:0"
+        allowfullscreen loading="lazy"></iframe>
+    </div>
+  </div>
+  {% endif %}
+
+  <label>Description (optional)</label>
+  <input name="description" value="{{ item.description if item else '' }}" placeholder="Short caption under the video">
+
+  <label>Sort order (lower = shows first)</label>
+  <input type="number" name="sort_order" value="{{ item.sort_order if item else 0 }}">
+
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+    <input type="checkbox" name="is_active" value="1" {% if not item or item.is_active %}checked{% endif %}>
+    Active (show on homepage HIGHLIGHT section)
+  </label>
+
+  <div style="margin-top:16px">
+    <button class="btn" type="submit">Save</button>
+    <a class="btn btn-outline" href="{{ url_for('admin.highlights') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

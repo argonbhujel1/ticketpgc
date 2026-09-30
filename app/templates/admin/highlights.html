@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+{% block title %}Highlights{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+  <h2>Match Highlights</h2>
+  <a class="btn" href="{{ url_for('admin.highlight_new') }}">+ Add Highlight</a>
+</div>
+<p style="color:var(--muted);margin-bottom:16px">YouTube videos shown on the homepage under the hero section. Add multiple — order by Sort order (lower = first).</p>
+<form method="post" action="{{ url_for('admin.highlight_bulk_delete') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=true)">Select all</button>
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=false)">Clear</button>
+    <button data-confirm="Delete selected highlights?" type="submit" class="btn" style="background:#c62828">Delete selected</button>
+  </div>
+  <table>
+    <tr>
+      <th></th>
+      <th>Preview</th>
+      <th>Title</th>
+      <th>YouTube ID</th>
+      <th>Order</th>
+      <th>Active</th>
+      <th></th>
+    </tr>
+    {% for h in items %}
+    <tr>
+      <td><input class="row-cb" type="checkbox" name="ids" value="{{ h.id }}"></td>
+      <td>
+        <img src="https://img.youtube.com/vi/{{ h.youtube_id }}/mqdefault.jpg"
+             alt="" style="width:120px;border-radius:6px;display:block">
+      </td>
+      <td>{{ h.title }}</td>
+      <td><code>{{ h.youtube_id }}</code></td>
+      <td>{{ h.sort_order }}</td>
+      <td>{% if h.is_active %}✅{% else %}—{% endif %}</td>
+      <td style="white-space:nowrap">
+        <a class="btn btn-outline" href="{{ url_for('admin.highlight_edit', id=h.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('admin.highlight_delete', id=h.id) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button data-confirm="Delete this highlight?" type="submit" class="btn" style="background:#c62828">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" style="color:var(--muted)">No highlights yet. Click “+ Add Highlight”.</td></tr>
+    {% endfor %}
+  </table>
+</form>
+{% endblock %}

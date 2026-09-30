@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:16px">Dashboard</h2>
+<div class="cards">
+  <div class="card"><div class="label">Bookings</div><div class="val">{{ bookings }}</div></div>
+  <div class="card"><div class="label">Paid</div><div class="val">{{ paid }}</div></div>
+  <div class="card"><div class="label">Tickets</div><div class="val">{{ tickets }}</div></div>
+  <div class="card"><div class="label">Checked In</div><div class="val">{{ checked }}</div></div>
+  <div class="card"><div class="label">Pending</div><div class="val">{{ pending }}</div></div>
+  <div class="card"><div class="label">Revenue</div><div class="val">Rs. {{ '%.0f'|format(revenue|float) }}</div></div>
+</div>
+<h3 style="margin:16px 0 8px;color:var(--muted)">Recent bookings</h3>
+<table>
+  <tr><th>Code</th><th>Buyer</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+  {% for b in recent %}
+  <tr>
+    <td>{{ b.booking_code }}</td>
+    <td>{{ b.buyer_name }}</td>
+    <td>Rs. {{ '%.0f'|format(b.total_amount|float) }}</td>
+    <td>{{ b.payment_status }}</td>
+    <td>{{ b.created_at.strftime('%Y-%m-%d %H:%M') if b.created_at else '' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}Ticket Classes{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:16px">Ticket Classes</h2>
+<form method="post" action="{{ url_for('admin.class_bulk_delete') }}" id="bulkForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.cls-cb').forEach(c=>c.checked=true)">Select all</button>
+    <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.cls-cb').forEach(c=>c.checked=false)">Clear</button>
+    <label style="font-size:0.85rem;color:var(--muted)"><input type="checkbox" name="force" value="1"> Force (also delete related tickets/bookings)</label>
+    <button type="submit" class="js-bulk-delete" data-confirm="Delete selected items?" class="btn" style="background:#c62828"
+      >Delete selected</button>
+  </div>
+  <table>
+    <tr><th></th><th>Match</th><th>Name</th><th>Price</th><th>Sold/Total</th><th>Gate</th><th>Zone</th><th></th></tr>
+    {% for c in classes %}
+    <tr>
+      <td><input class="cls-cb" type="checkbox" name="class_ids" value="{{ c.id }}"></td>
+      <td>#{{ c.match_id }}</td>
+      <td>{{ c.name }}</td>
+      <td>Rs. {{ c.price }}</td>
+      <td>{{ c.sold }}/{{ c.total_seats }}</td>
+      <td>{{ c.gate }}</td>
+      <td>{{ c.zone }}</td>
+      <td style="white-space:nowrap">
+        <a class="btn btn-outline" href="{{ url_for('admin.class_edit', id=c.id) }}">Edit</a>
+        <button data-confirm="Delete this class?" formaction="{{ url_for('admin.class_delete', id=c.id) }}" formmethod="post" class="btn" style="background:#c62828"
+          >Delete</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</form>
+<h3 style="margin:24px 0 12px">Add class</h3>
+<form method="post" action="{{ url_for('admin.class_new') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Match</label>
+  <select name="match_id">{% for m in matches %}<option value="{{ m.id }}">{{ m.display_name }}</option>{% endfor %}</select>
+  <label>Name</label><input name="name" placeholder="VIP" required>
+  <label>Price</label><input name="price" type="number" step="0.01" required>
+  <label>Total seats</label><input name="total_seats" type="number" value="100">
+  <label>Gate</label><input name="gate" value="Gate 1">
+  <label>Zone</label><input name="zone" value="East Stand">
+  <button class="btn" type="submit">Create</button>
+</form>
+{% endblock %}

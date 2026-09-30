@@ -1,0 +1,72 @@
+{% extends "public/base.html" %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="steps">
+      <span>1 Match</span><span>2 Details</span><span class="on">3 Payment</span><span>4 Ticket</span>
+    </div>
+    <div class="form-card" style="max-width:520px">
+      <h2 style="margin-bottom:12px">Your Booking</h2>
+      <div style="border-bottom:1px solid var(--glass-border);padding-bottom:12px;margin-bottom:16px;font-size:0.95rem">
+        <div><strong>{{ match.display_name }}</strong></div>
+        <div style="color:var(--muted)">{{ cart.class_name }} × {{ cart.quantity }}</div>
+        <div style="color:var(--muted)">{{ buyer.name }} · {{ buyer.phone }}</div>
+        <div style="margin-top:8px;font-size:1.2rem;font-weight:800;color:var(--gold-light)">Total: Rs. {{ '%.0f'|format(total|float) }}</div>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Payment Method</label>
+        <div class="pay-method">
+          <label class="{% if not esewa %}disabled{% endif %}">
+            <input type="radio" name="method" value="esewa" {% if not esewa %}disabled{% endif %}>
+            <div>
+              <strong>eSewa</strong>
+              <div style="font-size:0.8rem;color:var(--muted)">{% if esewa %}Automatic payment{% else %}Currently unavailable{% endif %}</div>
+            </div>
+          </label>
+          <label class="{% if not connectips %}disabled{% endif %}">
+            <input type="radio" name="method" value="connectips" {% if not connectips %}disabled{% endif %}>
+            <div>
+              <strong>ConnectIPS</strong>
+              <div style="font-size:0.8rem;color:var(--muted)">{% if connectips %}Automatic payment{% else %}Currently unavailable{% endif %}</div>
+            </div>
+          </label>
+          <label class="{% if not qr_pay %}disabled{% endif %}">
+            <input type="radio" name="method" value="qr" {% if qr_pay %}checked{% endif %} {% if not qr_pay %}disabled{% endif %}>
+            <div>
+              <strong>QR PAYMENT</strong>
+              <div style="font-size:0.8rem;color:var(--muted)">Pay via QR, upload screenshot for verification</div>
+            </div>
+          </label>
+        </div>
+
+        {% if qr_pay and qr_image %}
+        <div style="text-align:center;margin:16px 0;padding:16px;background:rgba(0,0,0,0.35);border-radius:12px;border:1px solid var(--glass-border)">
+          <p style="font-size:0.85rem;color:var(--gold);margin-bottom:10px;font-weight:700">Scan & pay this QR</p>
+          <img src="{{ url_for('public.media', filename=qr_image) }}" alt="Payment QR"
+               style="max-width:220px;width:100%;border-radius:12px;background:#fff;padding:8px">
+          {% if instructions %}
+          <p style="font-size:0.8rem;color:var(--muted);margin-top:10px">{{ instructions }}</p>
+          {% endif %}
+          <p style="font-size:0.9rem;color:var(--gold-light);margin-top:8px;font-weight:700">Amount: Rs. {{ '%.0f'|format(total|float) }}</p>
+        </div>
+        {% elif qr_pay %}
+        <p style="color:var(--muted);font-size:0.85rem;margin:12px 0">Admin has not uploaded a payment QR yet. You can still submit with transaction ID / proof.</p>
+        {% endif %}
+
+        <label>Transaction ID (optional)</label>
+        <input name="txn_id" placeholder="eSewa / bank transaction id">
+
+        <label>Payment proof screenshot *</label>
+        <input type="file" name="payment_proof" accept="image/png,image/png,image/webp,image/gif"
+               style="padding:10px;background:rgba(0,0,0,0.35);border:1px solid var(--glass-border);border-radius:10px;color:var(--text)">
+        <p style="font-size:0.75rem;color:var(--muted);margin:-8px 0 14px">Upload payment screenshot so admin can verify.</p>
+
+        <button type="submit" class="btn btn-gold btn-block">SUBMIT PAYMENT FOR VERIFICATION</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

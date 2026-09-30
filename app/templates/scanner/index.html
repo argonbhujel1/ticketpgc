@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PGC Gate Scanner</title>
+  <style>
+    body{margin:0;font-family:system-ui,sans-serif;background:#070b14;color:#f0f2f5;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px}
+    h1{color:#c9a227;font-size:1.2rem;letter-spacing:0.08em}
+    .cam{width:min(360px,92vw);aspect-ratio:1;background:#111;border:2px solid #c9a227;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#666;margin:20px 0}
+    input{width:min(360px,92vw);padding:14px;border-radius:10px;border:1px solid #333;background:#0d1526;color:#fff;font-size:1rem;text-align:center}
+    button{margin-top:12px;padding:14px 28px;border:none;border-radius:999px;background:#c9a227;color:#111;font-weight:800;cursor:pointer;font-size:1rem}
+    .stats{display:flex;gap:24px;margin:20px 0;text-align:center}
+    .stats div strong{display:block;font-size:1.4rem;color:#ffd56a}
+    .stats span{font-size:0.75rem;color:#888}
+    #result{margin-top:20px;padding:20px;border-radius:14px;min-width:280px;text-align:center;display:none}
+    #result.ok{background:rgba(46,125,50,0.25);border:2px solid #2e7d32;display:block}
+    #result.bad{background:rgba(229,57,53,0.2);border:2px solid #e53935;display:block}
+    #result.used{background:rgba(255,167,38,0.2);border:2px solid #ffa726;display:block}
+  </style>
+</head>
+<body>
+  <h1>PGC GATE SCANNER</h1>
+  <div class="cam">CAMERA / MANUAL ENTRY</div>
+  <div class="stats">
+    <div><strong>{{ scanned }}</strong><span>Scanned</span></div>
+    <div><strong>{{ valid_left }}</strong><span>Valid left</span></div>
+    <div><strong>{{ used }}</strong><span>Used</span></div>
+  </div>
+  <input id="code" placeholder="Scan or type ticket code" autofocus>
+  <button onclick="scan()">CHECK TICKET</button>
+  <div id="result"></div>
+  <p style="margin-top:24px"><a href="/admin" style="color:#c9a227">← Admin</a></p>
+  <script>
+  async function scan(){
+    const code = document.getElementById('code').value.trim();
+    if(!code) return;
+    const r = await fetch('/scanner/check', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({code})
+    });
+    const d = await r.json();
+    const el = document.getElementById('result');
+    el.className = d.ok ? 'ok' : (d.status==='used' ? 'used' : 'bad');
+    el.innerHTML = `<div style="font-size:1.4rem;font-weight:900">${d.message||d.status}</div>
+      <div style="margin-top:8px">${d.code||''}</div>
+      <div>${d.holder||''}</div>
+      <div style="color:#aaa;font-size:0.9rem">${d.match||''} · ${d.class||''}</div>`;
+    document.getElementById('code').value='';
+    document.getElementById('code').focus();
+    setTimeout(()=>{ el.style.display='none'; el.className=''; }, 4000);
+  }
+  document.getElementById('code').addEventListener('keydown', e => { if(e.key==='Enter') scan(); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <h2 style="color:var(--gold);margin-bottom:16px">PGC Admin Login</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Username</label>
+    <input name="username" required autocomplete="username">
+    <label>Password</label>
+    <input name="password" type="password" required autocomplete="current-password">
+    <button class="btn" type="submit" style="width:100%;margin-top:8px">Login</button>
+  </form>
+</div>
+{% endblock %}

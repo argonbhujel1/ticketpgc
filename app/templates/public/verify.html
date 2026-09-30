@@ -1,0 +1,26 @@
+{% extends "public/base.html" %}
+{% block title %}Verify Ticket{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <form method="post" class="form-card">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2 style="margin-bottom:12px">Verify Ticket</h2>
+      <label>Ticket Number</label>
+      <input name="code" value="{{ code }}" placeholder="PGC-TKT-2026-000001" required>
+      <button class="btn btn-gold btn-block" type="submit">VERIFY</button>
+    </form>
+    {% if ticket %}
+    <div class="form-card" style="margin-top:20px;text-align:center">
+      <div style="font-size:1.4rem;font-weight:900;color:{% if ticket.status=='valid' %}#81c784{% elif ticket.status=='used' %}#ffb74d{% else %}#e57373{% endif %}">
+        {{ ticket.status|upper }}
+      </div>
+      <p style="margin-top:8px;font-weight:800">{{ ticket.ticket_code }}</p>
+      <p>{{ ticket.holder_name }}</p>
+      <p style="color:var(--muted)">{{ ticket.match.display_name if ticket.match else '' }} · {{ ticket.ticket_class.name if ticket.ticket_class else '' }}</p>
+      <a class="btn btn-outline btn-sm" style="margin-top:12px" href="{{ url_for('public.ticket_view', code=ticket.ticket_code) }}">View Ticket</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

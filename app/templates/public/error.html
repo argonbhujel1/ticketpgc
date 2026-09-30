@@ -1,0 +1,11 @@
+{% extends "public/base.html" %}
+{% block title %}{{ code }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container" style="text-align:center;padding:60px 0">
+    <h1 style="font-size:3rem;color:var(--gold)">{{ code }}</h1>
+    <p style="color:var(--muted)">{{ message }}</p>
+    <a class="btn btn-gold" style="margin-top:20px" href="{{ url_for('public.home') }}">Home</a>
+  </div>
+</section>
+{% endblock %}
