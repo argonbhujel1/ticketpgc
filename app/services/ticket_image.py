@@ -135,9 +135,45 @@ def generate_ticket_png(
     background_path=None,
     trophy_path=None,
     footer_credit='Engineered by Argon Bhujel · Pathari Gold Cup',
+    qr_background_path=None,
 ):
-    """Half details (left) · half large QR (right)."""
-    base = _load_background(background_path).convert('RGBA')
+    """Left half: details + stadium bg · Right half: large QR on clean/QR bg only."""
+    STRIP_W = 120
+    MID = W // 2  # 600 — split line
+
+    # Full canvas starts neutral dark (not stadium)
+    base = Image.new('RGBA', (W, H), (8, 12, 24, 255))
+    draw = ImageDraw.Draw(base)
+
+    # Stadium / ticket background ONLY on left half (details area)
+    left_bg = _load_background(background_path)
+    if left_bg:
+        left_bg = left_bg.convert('RGBA')
+        # crop or scale to left panel width
+        left_panel = left_bg.crop((0, 0, MID, H))
+        base.paste(left_panel, (0, 0))
+
+    # QR panel background: custom image or clean light panel (never stadium)
+    if qr_background_path:
+        qbg = _open_image_any(qr_background_path)
+        if qbg is not None:
+            qbg = qbg.convert('RGB')
+            src_w, src_h = qbg.size
+            scale = max((W - MID) / src_w, H / src_h)
+            nw, nh = int(src_w * scale), int(src_h * scale)
+            qbg = qbg.resize((nw, nh), Image.Resampling.LANCZOS)
+            left = (nw - (W - MID)) // 2
+            top = (nh - H) // 2
+            qbg = qbg.crop((left, top, left + (W - MID), top + H)).convert('RGBA')
+            # light scrim so QR stays readable
+            scrim = Image.new('RGBA', (W - MID, H), (255, 255, 255, 200))
+            qbg = Image.alpha_composite(qbg, scrim)
+            base.paste(qbg, (MID, 0))
+        else:
+            draw.rectangle([MID, 0, W, H], fill=(248, 250, 252, 255))
+    else:
+        draw.rectangle([MID, 0, W, H], fill=(248, 250, 252, 255))
+
     draw = ImageDraw.Draw(base)
 
     GOLD = (201, 162, 39)
@@ -148,9 +184,6 @@ def generate_ticket_png(
     MUTED = (170, 180, 190)
 
     # ── Layout split: left details | right QR ─────────────────────
-    # Brand strip + details ≈ left half; QR panel ≈ right half
-    STRIP_W = 120
-    MID = W // 2  # 600
     DETAILS_LEFT = STRIP_W + 16
     DETAILS_RIGHT = MID - 12
     QR_PANEL_X = MID + 8

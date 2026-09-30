@@ -30,10 +30,11 @@ def _ticket_assets(ticket):
     away_logo = resolve_media_path(away.logo) if away and away.logo else None
     bg_rel = SiteSetting.get('ticket_background', '') or 'backgrounds/ticket-bg-default.png'
     bg = resolve_media_path(bg_rel) or resolve_media_path('images/bg.png')
+    qr_bg = resolve_media_path(SiteSetting.get('ticket_qr_background', '') or '')
     credit = SiteSetting.get('ticket_footer_credit', 'Engineered by Argon Bhujel · Pathari Gold Cup')
     tr = SiteSetting.get('ticket_trophy_logo', '') or 'logos/trophy-default.jpg'
     trophy = resolve_media_path(tr) or resolve_media_path('images/trophy.jpg')
-    return match, tc, home, away, home_logo, away_logo, bg, credit, trophy
+    return match, tc, home, away, home_logo, away_logo, bg, credit, trophy, qr_bg
 
 
 @public_bp.route('/')
@@ -249,9 +250,10 @@ def ticket_view(code):
 @public_bp.route('/ticket/<code>/png')
 def ticket_png(code):
     ticket = Ticket.query.filter_by(ticket_code=code).first_or_404()
-    match, tc, home, away, home_logo, away_logo, bg, credit, trophy = _ticket_assets(ticket)
+    match, tc, home, away, home_logo, away_logo, bg, credit, trophy, qr_bg = _ticket_assets(ticket)
     png = generate_ticket_png(ticket, match, tc, home, away, home_logo, away_logo,
-                             background_path=bg, trophy_path=trophy, footer_credit=credit)
+                             background_path=bg, trophy_path=trophy, footer_credit=credit,
+                             qr_background_path=qr_bg)
     return send_file(io.BytesIO(png), mimetype='image/png',
                      download_name=f'{ticket.ticket_code}.png', as_attachment=True)
 
@@ -260,18 +262,20 @@ def ticket_png(code):
 def ticket_preview(code):
     """Inline PNG for display (not attachment)."""
     ticket = Ticket.query.filter_by(ticket_code=code).first_or_404()
-    match, tc, home, away, home_logo, away_logo, bg, credit, trophy = _ticket_assets(ticket)
+    match, tc, home, away, home_logo, away_logo, bg, credit, trophy, qr_bg = _ticket_assets(ticket)
     png = generate_ticket_png(ticket, match, tc, home, away, home_logo, away_logo,
-                             background_path=bg, trophy_path=trophy, footer_credit=credit)
+                             background_path=bg, trophy_path=trophy, footer_credit=credit,
+                             qr_background_path=qr_bg)
     return send_file(io.BytesIO(png), mimetype='image/png')
 
 
 @public_bp.route('/ticket/<code>/pdf')
 def ticket_pdf(code):
     ticket = Ticket.query.filter_by(ticket_code=code).first_or_404()
-    match, tc, home, away, home_logo, away_logo, bg, credit, trophy = _ticket_assets(ticket)
+    match, tc, home, away, home_logo, away_logo, bg, credit, trophy, qr_bg = _ticket_assets(ticket)
     png = generate_ticket_png(ticket, match, tc, home, away, home_logo, away_logo,
-                             background_path=bg, trophy_path=trophy, footer_credit=credit)
+                             background_path=bg, trophy_path=trophy, footer_credit=credit,
+                             qr_background_path=qr_bg)
     pdf = ticket_png_to_pdf(png, ticket.ticket_code)
     return send_file(io.BytesIO(pdf), mimetype='application/pdf',
                      download_name=f'{ticket.ticket_code}.pdf', as_attachment=True)

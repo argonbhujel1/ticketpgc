@@ -137,20 +137,24 @@ def create_app(config_name=None):
             try:
                 from sqlalchemy import inspect
                 insp = inspect(db.engine)
-                if not insp.has_table('users'):
+                need_create = not insp.has_table('users')
+                if need_create:
                     db.create_all()
-                else:
-                    # ensure any new tables (e.g. highlights) without full recreate
-                    db.create_all()
+                elif not insp.has_table('highlights'):
+                    db.create_all()  # only if new tables missing
             except Exception as e:
                 app.logger.warning('DB create_all: %s', e)
             try:
                 _ensure_schema(app)
             except Exception as e:
                 app.logger.warning('schema ensure: %s', e)
+            # Seed only when admin missing (fast path: 1 query)
             try:
-                from app.services.seed import seed_default_data
-                seed_default_data()
+                from app.models.user import User
+                from config import Config
+                if not User.query.filter_by(username=Config.ADMIN_USERNAME).first():
+                    from app.services.seed import seed_default_data
+                    seed_default_data()
             except Exception as e:
                 app.logger.warning('DB seed deferred: %s', e)
         _DB_READY = True

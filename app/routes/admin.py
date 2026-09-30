@@ -18,21 +18,33 @@ from pathlib import Path as PathLib
 
 admin_bp = Blueprint('admin', __name__)
 
+def _recalc_class_sold(*class_ids):
+    """Recompute TicketClass.sold from actual tickets after deletes."""
+    ids = {i for i in class_ids if i}
+    for cid in ids:
+        tc = TicketClass.query.get(cid)
+        if not tc:
+            continue
+        tc.sold = Ticket.query.filter_by(ticket_class_id=cid).count()
+
+
+
 
 
 def _delete_tickets_by_ids(ids):
     n = 0
+    class_ids = set()
     for i in ids:
         tk = Ticket.query.get(i)
         if not tk:
             continue
+        class_ids.add(tk.ticket_class_id)
         code = tk.ticket_code
         holder = tk.holder_name
         email = None
         if tk.booking:
             email = tk.booking.buyer_email
             holder = holder or tk.booking.buyer_name
-        # notify owner
         try:
             send_ticket_invalidated_email(code, holder, email)
         except Exception as e:
@@ -40,16 +52,21 @@ def _delete_tickets_by_ids(ids):
         recycle_ticket_code(code, holder=holder, email=email)
         db.session.delete(tk)
         n += 1
+    _recalc_class_sold(*class_ids)
     return n
 
 
 def _delete_bookings_by_ids(ids):
     n = 0
+    class_ids = set()
     for i in ids:
         b = Booking.query.get(i)
         if not b:
             continue
+        if b.ticket_class_id:
+            class_ids.add(b.ticket_class_id)
         for tk in Ticket.query.filter_by(booking_id=b.id).all():
+            class_ids.add(tk.ticket_class_id)
             try:
                 send_ticket_invalidated_email(
                     tk.ticket_code, tk.holder_name or b.buyer_name, b.buyer_email
@@ -60,6 +77,7 @@ def _delete_bookings_by_ids(ids):
             db.session.delete(tk)
         db.session.delete(b)
         n += 1
+    _recalc_class_sold(*class_ids)
     return n
 
 
@@ -521,7 +539,7 @@ def settings():
     keys = [
         'site_name', 'site_tagline', 'hero_title',
         'payment_esewa_enabled', 'payment_connectips_enabled', 'payment_qr_enabled',
-        'payment_instructions', 'payment_qr_image', 'ticket_background', 'ticket_footer_credit',
+        'payment_instructions', 'payment_qr_image', 'ticket_background', 'ticket_qr_background', 'ticket_footer_credit',
         'home_background', 'ticket_trophy_logo', 'site_logo', 'highlight_youtube',
     ]
     if request.method == 'POST':
@@ -554,6 +572,19 @@ def settings():
                     'and use png/jpg/webp under 8MB.',
                     'error',
                 )
+        qr_bg = request.files.get('ticket_qr_background_file')
+        if qr_bg and qr_bg.filename:
+            path = save_upload(qr_bg, folder='backgrounds')
+            if path:
+                SiteSetting.set('ticket_qr_background', path)
+                flash('QR panel background uploaded.' + (
+                    ' (Cloudinary)' if str(path).startswith('http') else ''
+                ), 'success')
+            else:
+                flash('QR background upload failed. Need CLOUDINARY_* on Vercel.', 'error')
+        if request.form.get('clear_ticket_qr_background'):
+            SiteSetting.set('ticket_qr_background', '')
+            flash('QR panel background cleared.', 'success')
         home_bg = request.files.get('home_background_file')
         if home_bg and home_bg.filename:
             path = save_upload(home_bg, folder='backgrounds')

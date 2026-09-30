@@ -41,6 +41,7 @@ def _build_ticket_pngs(tickets):
 
     bg_rel = SiteSetting.get('ticket_background', '') or 'backgrounds/ticket-bg-default.png'
     bg = resolve_media_path(bg_rel) or resolve_media_path('images/bg.png')
+    qr_bg = resolve_media_path(SiteSetting.get('ticket_qr_background', '') or '')
     tr = SiteSetting.get('ticket_trophy_logo', '') or 'logos/trophy-default.jpg'
     trophy = resolve_media_path(tr) or resolve_media_path('images/trophy.jpg')
     credit = SiteSetting.get(
@@ -59,6 +60,7 @@ def _build_ticket_pngs(tickets):
         png = generate_ticket_png(
             t, match, tc, home, away, home_logo, away_logo,
             background_path=bg, trophy_path=trophy, footer_credit=credit,
+            qr_background_path=qr_bg,
         )
         out.append((t.ticket_code, png))
     return out

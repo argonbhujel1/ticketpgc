@@ -45,8 +45,20 @@
   {% else %}
   <p style="color:var(--muted);margin:8px 0">No custom background — default stadium gradient used.</p>
   {% endif %}
-  <label>Upload ticket background (stadium photo recommended)</label>
+  <label>Upload ticket background (stadium photo — left / details side only)</label>
   <input type="file" name="ticket_background_file" accept="image/*">
+
+  <h3 style="color:var(--gold);margin:20px 0 8px">QR panel background (optional)</h3>
+  <p style="color:var(--muted);font-size:0.85rem">Right side only (behind QR). Leave empty for clean white.</p>
+  {% if values.ticket_qr_background %}
+  <img src="{% if values.ticket_qr_background.startswith('http') %}{{ values.ticket_qr_background }}{% else %}{{ url_for('admin.uploaded_file', filename=values.ticket_qr_background) }}{% endif %}"
+       style="max-width:240px;border-radius:10px;margin-bottom:8px">
+  <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+    <input type="checkbox" name="clear_ticket_qr_background" value="1"> Clear QR background
+  </label>
+  {% endif %}
+  <label>Upload QR panel background</label>
+  <input type="file" name="ticket_qr_background_file" accept="image/*">
 
   
   <h3 style="color:var(--gold);margin:20px 0 8px">Homepage background</h3>
