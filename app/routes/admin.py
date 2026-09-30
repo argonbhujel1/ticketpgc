@@ -545,9 +545,15 @@ def settings():
             path = save_upload(bg, folder='backgrounds')
             if path:
                 SiteSetting.set('ticket_background', path)
-                flash('Ticket background uploaded.', 'success')
+                flash('Ticket background uploaded.' + (
+                    ' (Cloudinary)' if str(path).startswith('http') else ''
+                ), 'success')
             else:
-                flash('Invalid background image.', 'error')
+                flash(
+                    'Ticket background upload failed. On Vercel set CLOUDINARY_* env vars '
+                    'and use png/jpg/webp under 8MB.',
+                    'error',
+                )
         home_bg = request.files.get('home_background_file')
         if home_bg and home_bg.filename:
             path = save_upload(home_bg, folder='backgrounds')

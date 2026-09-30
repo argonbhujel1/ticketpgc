@@ -82,3 +82,23 @@ def save_upload(file_storage, folder='general', clear_bg=False, resource_type=No
             path = _clear_white_bg(path)
             name = path.name
     return f'{folder}/{name}'
+
+
+
+def resolve_media_path(rel):
+    """Return local filesystem path or https URL for images stored in settings/models."""
+    if not rel:
+        return None
+    s = str(rel).strip()
+    if s.startswith('http://') or s.startswith('https://'):
+        return s
+    from flask import current_app
+    upload = Path(current_app.config['UPLOAD_FOLDER'])
+    p = upload / s
+    if p.is_file():
+        return str(p)
+    static = Path(current_app.static_folder)
+    for candidate in (static / 'uploads' / s, static / 'images' / Path(s).name, static / s):
+        if candidate.is_file():
+            return str(candidate)
+    return None

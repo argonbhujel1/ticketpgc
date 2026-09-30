@@ -37,23 +37,12 @@ def _mail_cfg():
 def _build_ticket_pngs(tickets):
     from app.services.ticket_image import generate_ticket_png
     from app.models.settings import SiteSetting
+    from app.services.uploads import resolve_media_path
 
-    upload = Path(current_app.config['UPLOAD_FOLDER'])
-    bg = trophy = None
     bg_rel = SiteSetting.get('ticket_background', '') or 'backgrounds/ticket-bg-default.png'
-    if (upload / bg_rel).is_file():
-        bg = str(upload / bg_rel)
-    else:
-        static_bg = Path(current_app.static_folder) / 'images' / 'bg.png'
-        if static_bg.is_file():
-            bg = str(static_bg)
+    bg = resolve_media_path(bg_rel) or resolve_media_path('images/bg.png')
     tr = SiteSetting.get('ticket_trophy_logo', '') or 'logos/trophy-default.jpg'
-    if (upload / tr).is_file():
-        trophy = str(upload / tr)
-    else:
-        static_t = Path(current_app.static_folder) / 'images' / 'trophy.jpg'
-        if static_t.is_file():
-            trophy = str(static_t)
+    trophy = resolve_media_path(tr) or resolve_media_path('images/trophy.jpg')
     credit = SiteSetting.get(
         'ticket_footer_credit',
         'Engineered by Argon Bhujel · Pathari Sanischare Gold Cup',
@@ -65,11 +54,8 @@ def _build_ticket_pngs(tickets):
         tc = t.ticket_class
         home = match.home_team if match else None
         away = match.away_team if match else None
-        home_logo = away_logo = None
-        if home and home.logo and (upload / home.logo).is_file():
-            home_logo = str(upload / home.logo)
-        if away and away.logo and (upload / away.logo).is_file():
-            away_logo = str(upload / away.logo)
+        home_logo = resolve_media_path(home.logo) if home and home.logo else None
+        away_logo = resolve_media_path(away.logo) if away and away.logo else None
         png = generate_ticket_png(
             t, match, tc, home, away, home_logo, away_logo,
             background_path=bg, trophy_path=trophy, footer_credit=credit,
@@ -277,7 +263,7 @@ Official Ticketing System
         msg.attach(att)
 
     try:
-        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=30) as s:
+        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=15) as s:
             if cfg['use_tls']:
                 s.starttls()
             if cfg['username'] and cfg['password']:
@@ -358,7 +344,7 @@ Official Ticketing System
     msg.attach(MIMEText(text, 'plain', 'utf-8'))
     msg.attach(MIMEText(html, 'html', 'utf-8'))
     try:
-        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=25) as s:
+        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=12) as s:
             if cfg['use_tls']:
                 s.starttls()
             if cfg['username'] and cfg['password']:

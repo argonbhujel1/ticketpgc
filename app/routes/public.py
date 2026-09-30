@@ -20,41 +20,19 @@ from pathlib import Path
 public_bp = Blueprint('public', __name__)
 
 def _ticket_assets(ticket):
-    """Resolve logo/background absolute paths for ticket PNG."""
+    """Resolve logo/background paths or URLs for ticket PNG."""
     match = ticket.match
     tc = ticket.ticket_class
     home = match.home_team if match else None
     away = match.away_team if match else None
-    upload = Path(current_app.config['UPLOAD_FOLDER'])
-    home_logo = away_logo = bg = None
-    if home and home.logo:
-        p = upload / home.logo
-        if p.is_file():
-            home_logo = str(p)
-    if away and away.logo:
-        p = upload / away.logo
-        if p.is_file():
-            away_logo = str(p)
+    from app.services.uploads import resolve_media_path
+    home_logo = resolve_media_path(home.logo) if home and home.logo else None
+    away_logo = resolve_media_path(away.logo) if away and away.logo else None
     bg_rel = SiteSetting.get('ticket_background', '') or 'backgrounds/ticket-bg-default.png'
-    p = upload / bg_rel
-    if p.is_file():
-        bg = str(p)
-    else:
-        static_bg = Path(current_app.static_folder) / 'images' / 'bg.png'
-        if static_bg.is_file():
-            bg = str(static_bg)
+    bg = resolve_media_path(bg_rel) or resolve_media_path('images/bg.png')
     credit = SiteSetting.get('ticket_footer_credit', 'Engineered by Argon Bhujel · Pathari Gold Cup')
-    trophy = None
     tr = SiteSetting.get('ticket_trophy_logo', '') or 'logos/trophy-default.jpg'
-    p = upload / tr
-    if p.is_file():
-        trophy = str(p)
-    else:
-        # packaged static trophy
-        from flask import current_app as ca
-        static_t = Path(ca.static_folder) / 'images' / 'trophy.jpg'
-        if static_t.is_file():
-            trophy = str(static_t)
+    trophy = resolve_media_path(tr) or resolve_media_path('images/trophy.jpg')
     return match, tc, home, away, home_logo, away_logo, bg, credit, trophy
 
 

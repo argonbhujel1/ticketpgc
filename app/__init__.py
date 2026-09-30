@@ -4,6 +4,8 @@ from flask import Flask, render_template
 from config import config
 from app.extensions import db, login_manager, csrf
 
+_DB_READY = False
+
 
 def _ensure_schema(app):
     """Add columns that create_all will not alter on existing Postgres tables."""
@@ -128,20 +130,29 @@ def create_app(config_name=None):
         except Exception:
             return ('<h1>500</h1><p>Something went wrong</p>', 500)
 
-    with app.app_context():
-        try:
-            # Concurrent Vercel cold-starts can race on CREATE TYPE — safe to ignore
-            db.create_all()
-        except Exception as e:
-            app.logger.warning('DB create_all: %s', e)
-        try:
-            _ensure_schema(app)
-        except Exception as e:
-            app.logger.warning('schema ensure: %s', e)
-        try:
-            from app.services.seed import seed_default_data
-            seed_default_data()
-        except Exception as e:
-            app.logger.warning('DB seed deferred: %s', e)
+    # Run DB bootstrap at most once per serverless instance (not every request)
+    global _DB_READY
+    if not _DB_READY:
+        with app.app_context():
+            try:
+                from sqlalchemy import inspect
+                insp = inspect(db.engine)
+                if not insp.has_table('users'):
+                    db.create_all()
+                else:
+                    # ensure any new tables (e.g. highlights) without full recreate
+                    db.create_all()
+            except Exception as e:
+                app.logger.warning('DB create_all: %s', e)
+            try:
+                _ensure_schema(app)
+            except Exception as e:
+                app.logger.warning('schema ensure: %s', e)
+            try:
+                from app.services.seed import seed_default_data
+                seed_default_data()
+            except Exception as e:
+                app.logger.warning('DB seed deferred: %s', e)
+        _DB_READY = True
 
     return app

@@ -26,7 +26,7 @@
 
   <h3 style="color:var(--gold);margin:20px 0 8px">Payment QR image</h3>
   {% if values.payment_qr_image %}
-  <img src="{{ url_for('admin.uploaded_file', filename=values.payment_qr_image) }}"
+  <img src="{{ values.payment_qr_image if values.payment_qr_image.startswith('http') else url_for('admin.uploaded_file', filename=values.payment_qr_image) }}"
        alt="Payment QR" style="max-width:200px;border-radius:12px;border:1px solid var(--border);margin-bottom:10px">
   {% else %}
   <p style="color:var(--muted)">No QR uploaded yet.</p>
@@ -51,7 +51,7 @@
   
   <h3 style="color:var(--gold);margin:20px 0 8px">Homepage background</h3>
   {% if values.home_background %}
-  <img src="{{ url_for('admin.uploaded_file', filename=values.home_background) }}"
+  <img src="{% if values.home_background.startswith('http') %}{{ values.home_background }}{% else %}{{ url_for('admin.uploaded_file', filename=values.home_background) }}{% endif %}"
        style="max-width:320px;border-radius:10px;margin-bottom:8px">
   {% endif %}
   <label>Upload homepage hero background</label>
@@ -60,7 +60,7 @@
   
   <h3 style="color:var(--gold);margin:20px 0 8px">Website logo (navbar)</h3>
   {% if values.site_logo %}
-  <img src="{{ url_for('admin.uploaded_file', filename=values.site_logo) }}" style="height:56px;margin-bottom:8px;background:#fff;border-radius:8px;padding:4px">
+  <img src="{% if values.site_logo.startswith('http') %}{{ values.site_logo }}{% else %}{{ url_for('admin.uploaded_file', filename=values.site_logo) }}{% endif %}" style="height:56px;margin-bottom:8px;background:#fff;border-radius:8px;padding:4px">
   {% endif %}
   <label>Upload site logo (pgcg style)</label>
   <input type="file" name="site_logo_file" accept="image/*">
@@ -68,7 +68,7 @@
   <h3 style="color:var(--gold);margin:20px 0 8px">Ticket strip trophy logo</h3>
   <p style="color:var(--muted);font-size:0.85rem">Shows on left [PATHARI GOLD CUP] strip</p>
   {% if values.ticket_trophy_logo %}
-  <img src="{{ url_for('admin.uploaded_file', filename=values.ticket_trophy_logo) }}"
+  <img src="{% if values.ticket_trophy_logo.startswith('http') %}{{ values.ticket_trophy_logo }}{% else %}{{ url_for('admin.uploaded_file', filename=values.ticket_trophy_logo) }}{% endif %}"
        style="height:64px;margin-bottom:8px">
   {% endif %}
   <label>Upload trophy / brand logo</label>

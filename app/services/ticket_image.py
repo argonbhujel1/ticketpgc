@@ -14,6 +14,28 @@ import qrcode
 W, H = 1200, 520
 
 
+def _open_image_any(path_or_url):
+    """Open local path or https URL (Cloudinary) as RGB/RGBA PIL image."""
+    if not path_or_url:
+        return None
+    s = str(path_or_url)
+    try:
+        if s.startswith('http://') or s.startswith('https://'):
+            import urllib.request
+            req = urllib.request.Request(s, headers={'User-Agent': 'PGC-Ticket/1.0'})
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                data = resp.read()
+            from io import BytesIO
+            return Image.open(BytesIO(data))
+        p = Path(s)
+        if p.is_file():
+            return Image.open(p)
+    except Exception:
+        return None
+    return None
+
+
+
 def _font(size: int, bold: bool = False):
     candidates = [
         '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' if bold else '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
@@ -33,11 +55,11 @@ def _font(size: int, bold: bool = False):
 def _load_logo(path, size=(96, 96)):
     if not path:
         return None
-    p = Path(path)
-    if not p.is_file():
-        return None
     try:
-        img = Image.open(p).convert('RGBA')
+        img = _open_image_any(path)
+        if img is None:
+            return None
+        img = img.convert('RGBA')
         img.thumbnail(size, Image.Resampling.LANCZOS)
         canvas = Image.new('RGBA', size, (0, 0, 0, 0))
         x = (size[0] - img.width) // 2
@@ -77,9 +99,9 @@ def _load_background(bg_path):
     """Stadium / brand image as ticket body — keep colors visible, readable text."""
     if bg_path:
         try:
-            p = Path(bg_path)
-            if p.is_file():
-                bg = Image.open(p).convert('RGB')
+            opened = _open_image_any(bg_path)
+            if opened is not None:
+                bg = opened.convert('RGB')
                 src_w, src_h = bg.size
                 scale = max(W / src_w, H / src_h)
                 nw, nh = int(src_w * scale), int(src_h * scale)
@@ -137,9 +159,12 @@ def generate_ticket_png(
     draw.rounded_rectangle([0, 0, STRIP_W, H], radius=14, fill=DARK)
 
     # Trophy in strip
-    if trophy_path and Path(trophy_path).is_file():
+    if trophy_path:
         try:
-            tr = Image.open(trophy_path).convert('RGBA')
+            tr = _open_image_any(trophy_path)
+            if tr is None:
+                raise FileNotFoundError(trophy_path)
+            tr = tr.convert('RGBA')
             tr.thumbnail((STRIP_W - 16, 220), Image.Resampling.LANCZOS)
             pixels = list(tr.getdata())
             cleaned = []
