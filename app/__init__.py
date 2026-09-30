@@ -65,11 +65,17 @@ def create_app(config_name=None):
 
     @app.errorhandler(404)
     def not_found(e):
-        return render_template('public/error.html', code=404, message='Page not found'), 404
+        try:
+            return render_template('public/error.html', code=404, message='Page not found'), 404
+        except Exception:
+            return ('<h1>404</h1><p>Page not found</p>', 404)
 
     @app.errorhandler(500)
     def server_error(e):
-        return render_template('public/error.html', code=500, message='Something went wrong'), 500
+        try:
+            return render_template('public/error.html', code=500, message='Something went wrong'), 500
+        except Exception:
+            return ('<h1>500</h1><p>Something went wrong</p>', 500)
 
     with app.app_context():
         try:

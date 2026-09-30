@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import timedelta
 
 basedir = Path(__file__).parent.absolute()
+ON_VERCEL = bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_ENV'))
 
 
 class Config:
@@ -12,18 +13,32 @@ class Config:
         _db = _db.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_DATABASE_URI = _db
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_size': 5,
-        'max_overflow': 2,
-    }
-    # Aiven requires SSL — already in DATABASE_URL ?sslmode=require
+
+    # Serverless (Vercel): no persistent connections — NullPool
+    if ON_VERCEL:
+        from sqlalchemy.pool import NullPool
+        _engine_opts = {
+            'poolclass': NullPool,
+            'pool_pre_ping': True,
+        }
+        if _db.startswith('postgresql'):
+            _engine_opts['connect_args'] = {'connect_timeout': 10}
+        SQLALCHEMY_ENGINE_OPTIONS = _engine_opts
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'pool_size': 5,
+            'max_overflow': 2,
+        }
+
     UPLOAD_FOLDER = basedir / 'app' / 'static' / 'uploads'
     MAX_CONTENT_LENGTH = 8 * 1024 * 1024
     PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    # Secure cookies on HTTPS (Vercel)
+    SESSION_COOKIE_SECURE = ON_VERCEL or os.environ.get('SESSION_COOKIE_SECURE', '').lower() in ('1', 'true', 'yes')
     WTF_CSRF_ENABLED = True
     SITE_NAME = 'Pathari Gold Cup'
     SITE_YEAR = '2026'

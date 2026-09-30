@@ -60,12 +60,27 @@ def _ticket_assets(ticket):
 
 @public_bp.route('/')
 def home():
-    matches = Match.query.filter(Match.status.in_(['upcoming', 'live']))\
-        .order_by(Match.match_date.asc()).limit(6).all()
-    featured = Match.query.filter_by(is_featured=True, status='upcoming')\
-        .order_by(Match.match_date.asc()).first()
-    if not featured and matches:
-        featured = matches[0]
+    matches = []
+    featured = None
+    try:
+        matches = Match.query.filter(Match.status.in_(['upcoming', 'live']))\
+            .order_by(Match.match_date.asc()).limit(6).all()
+        featured = Match.query.filter_by(is_featured=True, status='upcoming')\
+            .order_by(Match.match_date.asc()).first()
+        if not featured and matches:
+            featured = matches[0]
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error('home DB error: %s', e)
+        # still render page shell if templates exist
+        try:
+            return render_template('public/home.html', matches=[], featured=None), 503
+        except Exception:
+            return (
+                '<h1>Pathari Gold Cup</h1>'
+                '<p>Database temporarily unavailable. Check DATABASE_URL / Aiven host.</p>',
+                503,
+            )
     return render_template('public/home.html', matches=matches, featured=featured)
 
 
