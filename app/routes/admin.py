@@ -567,7 +567,7 @@ def settings():
         'site_name', 'site_tagline', 'hero_title',
         'payment_esewa_enabled', 'payment_connectips_enabled', 'payment_qr_enabled',
         'payment_instructions', 'payment_qr_image', 'ticket_background', 'ticket_qr_background', 'ticket_footer_credit',
-        'home_background', 'ticket_trophy_logo', 'site_logo', 'highlight_youtube',
+        'home_background', 'ticket_trophy_logo', 'site_logo', 'highlight_youtube', 'gate_voice_lang',
     ]
     if request.method == 'POST':
         for k in keys:
@@ -755,3 +755,14 @@ def highlight_bulk_delete():
     db.session.commit()
     flash(f'Deleted {n} highlight(s).', 'success' if n else 'error')
     return redirect(url_for('admin.highlights'))
+
+
+@admin_bp.route('/gate-stats/reset', methods=['POST'])
+@login_required
+def gate_reset_stats():
+    """Reset Entered / Rejected counters (scan_logs only). Does not un-use tickets."""
+    from app.models.scan_log import ScanLog
+    n = ScanLog.query.delete()
+    db.session.commit()
+    flash(f'Gate counters reset. Cleared {n} scan log(s). Tickets status unchanged.', 'success')
+    return redirect(url_for('admin.settings'))

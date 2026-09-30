@@ -95,6 +95,28 @@
   <p style="font-size:0.85rem;color:var(--muted)">Current ID: {{ values.highlight_youtube }}</p>
   {% endif %}
 
+  
+  <h3 style="color:var(--gold);margin:24px 0 8px">Gate scanner</h3>
+  <p style="color:var(--muted);font-size:0.85rem;margin-bottom:10px">
+    Voice after each scan, and reset Entered / Rejected counters.
+  </p>
+  <label>Gate voice language</label>
+  <select name="gate_voice_lang" style="max-width:280px">
+    <option value="en" {% if values.gate_voice_lang != 'ne' %}selected{% endif %}>English</option>
+    <option value="ne" {% if values.gate_voice_lang == 'ne' %}selected{% endif %}>नेपाली (Nepali)</option>
+  </select>
+  <div style="margin-top:14px;padding:14px;border:1px solid rgba(229,57,53,0.35);border-radius:12px;background:rgba(229,57,53,0.08);max-width:420px">
+    <p style="font-size:0.85rem;color:var(--muted);margin:0 0 10px">
+      Reset <b>Entered</b> / <b>Rejected</b> numbers on gate screen to 0.
+      Does not change ticket valid/used status.
+    </p>
+    <button formaction="{{ url_for('admin.gate_reset_stats') }}" formmethod="post"
+            class="btn" style="background:#c62828"
+            data-confirm="Reset gate Entered and Rejected counters to 0?">
+      Reset gate counters
+    </button>
+  </div>
+
   <h3 style="color:var(--gold);margin:20px 0 8px">Email delivery</h3>
 
   <p style="color:var(--muted);font-size:0.85rem;line-height:1.5">

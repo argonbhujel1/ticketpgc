@@ -46,6 +46,7 @@ def seed_default_data():
         'ticket_background': 'backgrounds/ticket-bg-default.png',
         'site_logo': 'logos/site-logo.jpg',
         'home_background': 'backgrounds/home-bg-default.png',
+        'gate_voice_lang': 'en',
     }
     for k, v in defaults.items():
         if not SiteSetting.query.filter_by(key=k).first():

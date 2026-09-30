@@ -47,10 +47,15 @@ def index():
     entered, rejected = _gate_stats()
     used = Ticket.query.filter_by(status='used').count()
     valid_left = Ticket.query.filter_by(status='valid').count()
+    from app.models.settings import SiteSetting
+    voice_lang = (SiteSetting.get('gate_voice_lang', 'en') or 'en').strip().lower()
+    if voice_lang not in ('en', 'ne'):
+        voice_lang = 'en'
     return render_template(
         'gate/index.html',
         entered=entered, rejected=rejected,
         used=used, valid_left=valid_left,
+        voice_lang=voice_lang,
     )
 
 

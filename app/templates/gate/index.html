@@ -214,53 +214,65 @@
 
   <script>
 
-  function speakGate(text) {
+  const VOICE_LANG = {{ (voice_lang or 'en')|tojson }};
+
+  function speakGate(text, lang) {
     try {
       if (!window.speechSynthesis) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = 0.95;
+      u.lang = (lang === 'ne') ? 'ne-NP' : 'en-US';
+      u.rate = (lang === 'ne') ? 0.9 : 0.95;
       u.pitch = 1;
+      // pick a matching voice if available
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (lang === 'ne') {
+        const v = voices.find(x => (x.lang || '').toLowerCase().startsWith('ne'));
+        if (v) u.voice = v;
+      } else {
+        const v = voices.find(x => (x.lang || '').toLowerCase().startsWith('en'));
+        if (v) u.voice = v;
+      }
       window.speechSynthesis.speak(u);
     } catch (e) {}
   }
 
   function announceScan(d) {
+    const lang = VOICE_LANG === 'ne' ? 'ne' : 'en';
     if (d.ok) {
-      speakGate('Valid ticket. Now you can enter.');
+      speakGate(lang === 'ne'
+        ? 'मान्य टिकट। अब तपाईं भित्र जान सक्नुहुन्छ।'
+        : 'Valid ticket. Now you can enter.', lang);
       return;
     }
     if (d.status === 'used') {
       let timeStr = '';
       if (d.checked_in_at_display) {
-        timeStr = String(d.checked_in_at_display).replace(/:/g, ' ');
+        timeStr = String(d.checked_in_at_display);
       } else if (d.checked_in_at) {
-        try {
-          const parts = String(d.checked_in_at).replace('T', ' ').split(/[\s:]/);
-          let h = parseInt(parts[1], 10);
-          const m = parts[2], s = parts[3] || '00';
-          const ampm = h >= 12 ? 'P M' : 'A M';
-          h = h % 12; if (h === 0) h = 12;
-          timeStr = h + ' ' + m + ' ' + s + ' ' + ampm;
-        } catch (e) {}
+        timeStr = String(d.checked_in_at).replace('T', ' ');
       }
-      if (timeStr) {
-        speakGate('Already entered. By using this ticket someone already entered at ' + timeStr + '.');
+      if (lang === 'ne') {
+        speakGate(timeStr
+          ? 'पहिले नै प्रवेश भइसकेको छ। यो टिकट प्रयोग गरेर कसैले ' + timeStr + ' मा प्रवेश गरिसकेका छन्।'
+          : 'पहिले नै प्रवेश भइसकेको छ। यो टिकट पहिले नै प्रयोग भइसकेको छ।', lang);
       } else {
-        speakGate('Already entered. This ticket was already used.');
+        const spoken = timeStr ? timeStr.replace(/:/g, ' ') : '';
+        speakGate(spoken
+          ? 'Already entered. By using this ticket someone already entered at ' + spoken + '.'
+          : 'Already entered. This ticket was already used.', lang);
       }
       return;
     }
     if (d.status === 'invalid' || d.status === 'error') {
-      speakGate('No ticket found.');
+      speakGate(lang === 'ne' ? 'टिकट भेटिएन।' : 'No ticket found.', lang);
       return;
     }
     if (d.status === 'cancelled') {
-      speakGate('Ticket cancelled. Entry not allowed.');
+      speakGate(lang === 'ne' ? 'टिकट रद्द भएको छ। प्रवेश अनुमति छैन।' : 'Ticket cancelled. Entry not allowed.', lang);
       return;
     }
-    speakGate(d.message || 'Scan failed.');
+    speakGate(d.message || (lang === 'ne' ? 'स्क्यान असफल।' : 'Scan failed.'), lang);
   }
 
   const CHECK_URL = "{{ url_for('gate.check') }}";
