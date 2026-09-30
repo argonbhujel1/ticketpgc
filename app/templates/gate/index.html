@@ -82,6 +82,31 @@
     .stats .rej strong { color: #e57373; }
     .stats .ok strong { color: #81c784; }
     .stats span { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .scan-status {
+      width: min(360px, 100%);
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 8px 12px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+      background: rgba(201,162,39,0.12);
+      border: 1px solid rgba(201,162,39,0.35);
+      color: var(--gold-light);
+    }
+    .scan-status.busy {
+      background: rgba(255,167,38,0.15);
+      border-color: #ffa726;
+      color: #ffcc80;
+    }
+    .scan-status.paused {
+      background: rgba(46,125,50,0.2);
+      border-color: #2e7d32;
+      color: #a5d6a7;
+    }
+
     #reader {
       width: min(360px, 100%);
       border-radius: 16px;
@@ -89,6 +114,15 @@
       border: 2px solid var(--gold);
       background: #111;
       min-height: 220px;
+      position: relative;
+    }
+    #reader.dimmed::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 2;
+      pointer-events: none;
     }
     .manual {
       margin-top: 16px;
@@ -130,6 +164,7 @@
       font-size: 0.95rem;
       -webkit-tap-highlight-color: transparent;
     }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     button.secondary {
       background: transparent;
       border: 1px solid var(--gold);
@@ -163,33 +198,115 @@
     <div class="rej"><strong id="rejected">{{ rejected }}</strong><span>Rejected</span></div>
   </div>
 
+  <div id="scanStatus" class="scan-status">Ready to scan</div>
   <div id="reader"></div>
 
   <div class="manual">
-    <input id="code" type="text" inputmode="text" autocomplete="off" placeholder="Or type ticket code" autofocus>
+    <input id="code" type="text" inputmode="text" autocomplete="off" placeholder="Or type ticket code">
     <div class="btn-row">
-      <button type="button" onclick="scanManual()">Check code</button>
+      <button type="button" id="btnManual" onclick="scanManual()">Check code</button>
       <button type="button" class="secondary" id="btnCam" onclick="toggleCam()">Stop camera</button>
     </div>
-    <p class="hint">Point camera at QR · or enter code manually</p>
+    <p class="hint">One ticket at a time · camera pauses after each scan</p>
   </div>
 
   <div id="result"></div>
 
   <script>
   const CHECK_URL = "{{ url_for('gate.check') }}";
+  const COOLDOWN_MS = 4500;      // block same/any code while showing result
+  const SAME_CODE_MS = 12000;    // same QR ignored longer
+
   let html5QrCode = null;
   let camOn = false;
+  let scanning = false;          // request in flight
+  let paused = false;            // after a scan, wait before next
   let lastCode = '';
   let lastAt = 0;
+  let resumeTimer = null;
 
-  async function processCode(raw) {
-    const code = (raw || '').trim();
+  function setStatus(text, mode) {
+    const el = document.getElementById('scanStatus');
+    el.textContent = text;
+    el.className = 'scan-status' + (mode ? ' ' + mode : '');
+  }
+
+  function setReaderDim(on) {
+    document.getElementById('reader').classList.toggle('dimmed', !!on);
+  }
+
+  async function pauseCamera() {
+    if (!html5QrCode || !camOn) return;
+    try {
+      await html5QrCode.pause(true); // pause and keep camera on
+      paused = true;
+      setReaderDim(true);
+    } catch (e) {
+      // pause may fail on some devices — rely on scanning lock
+      paused = true;
+      setReaderDim(true);
+    }
+  }
+
+  async function resumeCamera() {
+    if (resumeTimer) {
+      clearTimeout(resumeTimer);
+      resumeTimer = null;
+    }
+    paused = false;
+    scanning = false;
+    setReaderDim(false);
+    setStatus('Ready to scan');
+    if (html5QrCode && camOn) {
+      try {
+        await html5QrCode.resume();
+      } catch (e) {}
+    }
+  }
+
+  function scheduleResume(ms) {
+    if (resumeTimer) clearTimeout(resumeTimer);
+    const sec = Math.ceil(ms / 1000);
+    setStatus('Next scan in ' + sec + 's…', 'paused');
+    let left = sec;
+    resumeTimer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(resumeTimer);
+        resumeTimer = null;
+        resumeCamera();
+      } else {
+        setStatus('Next scan in ' + left + 's…', 'paused');
+      }
+    }, 1000);
+  }
+
+  async function processCode(raw, fromCamera) {
+    let code = (raw || '').trim();
     if (!code) return;
+
+    // Extract ticket code if QR embeds a URL
+    try {
+      if (code.indexOf('http') === 0) {
+        const u = new URL(code);
+        code = u.searchParams.get('code') || u.pathname.split('/').pop() || code;
+      }
+    } catch (e) {}
+    code = code.toUpperCase();
+
     const now = Date.now();
-    if (code === lastCode && now - lastAt < 2500) return;
+    if (scanning || paused) return;
+    if (code === lastCode && (now - lastAt) < SAME_CODE_MS) return;
+    if ((now - lastAt) < 800) return; // hard debounce
+
+    scanning = true;
     lastCode = code;
     lastAt = now;
+    setStatus('Checking…', 'busy');
+
+    if (fromCamera) {
+      await pauseCamera();
+    }
 
     try {
       const r = await fetch(CHECK_URL, {
@@ -200,24 +317,37 @@
       const d = await r.json();
       if (d.entered != null) document.getElementById('entered').textContent = d.entered;
       if (d.rejected != null) document.getElementById('rejected').textContent = d.rejected;
+
       const el = document.getElementById('result');
       el.className = d.ok ? 'ok' : (d.status === 'used' ? 'used' : 'bad');
       el.style.display = 'block';
-      el.innerHTML = `<div style="font-size:1.35rem;font-weight:900">${d.message || d.status}</div>
-        <div style="margin-top:8px">${d.code || ''}</div>
-        <div>${d.holder || ''}</div>
-        <div style="color:#aaa;font-size:0.9rem">${d.match || ''} · ${d.class || ''}</div>`;
-      if (navigator.vibrate) navigator.vibrate(d.ok ? [40] : [80, 40, 80]);
-      setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 4000);
+      el.innerHTML =
+        '<div style="font-size:1.35rem;font-weight:900">' + (d.message || d.status) + '</div>' +
+        '<div style="margin-top:8px">' + (d.code || '') + '</div>' +
+        '<div>' + (d.holder || '') + '</div>' +
+        '<div style="color:#aaa;font-size:0.9rem">' +
+          (d.match || '') + (d.class ? ' · ' + d.class : '') +
+        '</div>';
+
+      if (navigator.vibrate) {
+        navigator.vibrate(d.ok ? [50] : [90, 50, 90]);
+      }
+
+      // Keep result visible, then auto-ready for next ticket
+      scheduleResume(COOLDOWN_MS);
     } catch (e) {
+      setStatus('Network error', 'busy');
       alert('Network error: ' + e);
+      scanning = false;
+      scheduleResume(2000);
     }
   }
 
   function scanManual() {
-    processCode(document.getElementById('code').value);
-    document.getElementById('code').value = '';
-    document.getElementById('code').focus();
+    const input = document.getElementById('code');
+    processCode(input.value, false);
+    input.value = '';
+    input.blur();
   }
 
   document.getElementById('code').addEventListener('keydown', e => {
@@ -225,7 +355,9 @@
   });
 
   function onScanSuccess(decodedText) {
-    processCode(decodedText);
+    // html5-qrcode fires very often — only process when idle
+    if (scanning || paused) return;
+    processCode(decodedText, true);
   }
 
   async function startCam() {
@@ -235,25 +367,47 @@
     try {
       await html5QrCode.start(
         { facingMode: 'environment' },
-        { fps: 8, qrbox: { width: 220, height: 220 } },
+        {
+          fps: 5,
+          qrbox: { width: 240, height: 240 },
+          // reduce continuous decode spam
+          disableFlip: false,
+        },
         onScanSuccess,
         () => {}
       );
       camOn = true;
+      paused = false;
       document.getElementById('btnCam').textContent = 'Stop camera';
+      setStatus('Ready to scan');
+      setReaderDim(false);
     } catch (err) {
       document.getElementById('reader').innerHTML =
         '<p style="padding:24px;color:#888;text-align:center">Camera not available.<br>Use manual code entry.</p>';
       document.getElementById('btnCam').style.display = 'none';
+      setStatus('Manual mode');
     }
   }
 
   async function toggleCam() {
     if (!html5QrCode) return;
     if (camOn) {
-      try { await html5QrCode.stop(); } catch (e) {}
+      if (resumeTimer) {
+        clearInterval(resumeTimer);
+        resumeTimer = null;
+      }
+      try {
+        if (paused) {
+          try { await html5QrCode.resume(); } catch (e) {}
+        }
+        await html5QrCode.stop();
+      } catch (e) {}
       camOn = false;
+      paused = false;
+      scanning = false;
+      setReaderDim(false);
       document.getElementById('btnCam').textContent = 'Start camera';
+      setStatus('Camera off');
     } else {
       await startCam();
     }
