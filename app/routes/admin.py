@@ -410,6 +410,32 @@ def booking_confirm(id):
     return redirect(url_for('admin.booking_detail', id=booking.id))
 
 
+@admin_bp.route('/bookings/<int:id>/reject', methods=['POST'])
+@login_required
+def booking_reject(id):
+    booking = Booking.query.get_or_404(id)
+    if booking.payment_status == 'paid':
+        flash('Cannot reject a paid booking. Delete tickets first if needed.', 'error')
+        return redirect(url_for('admin.booking_detail', id=booking.id))
+    reason = (request.form.get('rejection_reason') or '').strip()
+    if not reason:
+        flash('Please enter a rejection reason.', 'error')
+        return redirect(url_for('admin.booking_detail', id=booking.id))
+    booking.payment_status = 'rejected'
+    booking.rejection_reason = reason[:1000]
+    booking.rejected_at = datetime.now(timezone.utc)
+    # cancel any accidental tickets (should be none if not paid)
+    for tk in Ticket.query.filter_by(booking_id=booking.id).all():
+        tk.status = 'cancelled'
+    db.session.commit()
+    # optional email
+    try:
+        from app.services.notify import send_booking_rejected_email
+        send_booking_rejected_email(booking)
+    except Exception as e:
+        current_app.logger.warning('reject mail: %s', e)
+    flash('Booking rejected. Reason saved.', 'success')
+    return redirect(url_for('admin.booking_detail', id=booking.id))
 
 
 @admin_bp.route('/bookings/<int:id>/resend', methods=['POST'])

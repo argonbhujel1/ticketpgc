@@ -221,7 +221,7 @@ def payment():
 
         if booking.payment_status == 'paid':
             return redirect(url_for('public.success', code=booking.booking_code))
-        flash('Booking received. You will receive a mail after your booking is approved.', 'info')
+        flash('Your booking has been received. You will get a mail after approval.', 'success')
         return redirect(url_for('public.success', code=booking.booking_code))
 
     qr_image = SiteSetting.get('payment_qr_image', '')

@@ -16,12 +16,14 @@ class Booking(db.Model):
     buyer_phone = db.Column(db.String(30), nullable=False)
     buyer_email = db.Column(db.String(120))
     payment_method = db.Column(db.String(40))  # esewa, connectips, qr, manual
-    payment_status = db.Column(db.String(20), default='pending')  # pending, paid, failed, refunded
+    payment_status = db.Column(db.String(20), default='pending')  # pending, paid, failed, refunded, rejected
     payment_ref = db.Column(db.String(120))
     payment_proof = db.Column(db.String(255))  # uploads/proofs/...
     notes = db.Column(db.Text)
+    rejection_reason = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     paid_at = db.Column(db.DateTime)
+    rejected_at = db.Column(db.DateTime)
 
     match = db.relationship('Match')
     ticket_class = db.relationship('TicketClass')

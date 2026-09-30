@@ -1,11 +1,11 @@
 {% extends "public/base.html" %}
-{% block title %}{% if booking.payment_status == 'paid' %}Ticket Ready{% else %}Booking Received{% endif %} · {{ site_name }}{% endblock %}
+{% block title %}{% if booking.payment_status == 'paid' %}Ticket Ready{% elif booking.payment_status == 'rejected' %}Booking Not Approved{% else %}Booking Received{% endif %} · {{ site_name }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block content %}
 <section class="section">
   <div class="container success-box">
     <div class="steps">
-      <span>1 Match</span><span>2 Details</span><span>3 Payment</span><span class="on">4 Ticket</span>
+      <span>1 Match</span><span>2 Details</span><span>3 Payment</span><span class="on">4 Done</span>
     </div>
 
     {% if booking.payment_status == 'paid' %}
@@ -18,26 +18,37 @@
       {% if booking.buyer_email %}
       <p style="margin-top:10px;color:var(--muted)">Sent to: <span style="color:var(--text)">{{ booking.buyer_email }}</span></p>
       {% endif %}
-      <p style="margin-top:8px;font-size:0.85rem;color:var(--muted)">You can also download below right now.</p>
     </div>
+
+    {% elif booking.payment_status == 'rejected' %}
+    <div class="check" style="border-color:#e53935;background:rgba(229,57,53,0.15);color:#ef9a9a">✕</div>
+    <h1 style="font-size:1.4rem;font-weight:800;color:#ef9a9a;margin-bottom:8px">BOOKING NOT APPROVED</h1>
+    <div style="max-width:480px;margin:16px auto;padding:14px 16px;border-radius:12px;
+                background:rgba(229,57,53,0.12);border:1px solid #e53935;text-align:left;font-size:0.95rem">
+      <p style="margin:0 0 8px"><strong>Reason:</strong></p>
+      <p style="margin:0;color:var(--text)">{{ booking.rejection_reason or 'Contact organizers for details.' }}</p>
+    </div>
+
     {% else %}
-    <div class="check" style="border-color:var(--gold);background:rgba(201,162,39,0.15);color:var(--gold-light)">…</div>
-    <h1 style="font-size:1.4rem;font-weight:800;color:var(--gold-light);margin-bottom:8px">BOOKING RECEIVED</h1>
-    <p style="color:var(--muted);margin-bottom:8px">Payment proof submitted.</p>
+    <div class="check" style="border-color:var(--gold);background:rgba(201,162,39,0.15);color:var(--gold-light)">✓</div>
+    <h1 style="font-size:1.5rem;font-weight:900;color:var(--gold-light);margin-bottom:8px">YOUR BOOKING HAS BEEN RECEIVED</h1>
+    <p style="color:var(--muted);margin-bottom:8px">Thank you. We have received your booking request.</p>
     <div style="max-width:480px;margin:16px auto;padding:14px 16px;border-radius:12px;
                 background:rgba(201,162,39,0.12);border:1px solid var(--gold);text-align:left;font-size:0.95rem">
-      <strong style="color:var(--gold-light)">You will receive a mail after your booking is approved.</strong>
+      <strong style="color:var(--gold-light)">What happens next?</strong>
+      <ul style="margin:10px 0 0 18px;color:var(--muted);line-height:1.6">
+        <li>Admin will verify your payment</li>
+        <li>After approval you get ticket by email (PNG + QR)</li>
+        <li>Check status anytime with your booking code</li>
+      </ul>
       {% if booking.buyer_email %}
-      <p style="margin-top:10px;color:var(--muted)">We will email: <span style="color:var(--text)">{{ booking.buyer_email }}</span></p>
+      <p style="margin-top:12px;color:var(--muted)">We will email: <span style="color:var(--text)">{{ booking.buyer_email }}</span></p>
       {% endif %}
-      <p style="margin-top:8px;font-size:0.85rem;color:var(--muted)">
-        Save your booking code. Ticket (with QR) arrives by email once payment is confirmed by admin.
-      </p>
     </div>
     {% endif %}
 
-    <p style="margin:12px 0;font-size:0.9rem;color:var(--muted)">Booking</p>
-    <p style="font-weight:800;letter-spacing:0.04em;color:var(--gold)">{{ booking.booking_code }}</p>
+    <p style="margin:12px 0;font-size:0.9rem;color:var(--muted)">Booking code</p>
+    <p style="font-weight:800;letter-spacing:0.04em;color:var(--gold);font-size:1.15rem">{{ booking.booking_code }}</p>
 
     {% for t in tickets %}
     <div style="margin-top:28px">
@@ -52,19 +63,17 @@
         <a class="btn btn-gold" href="{{ url_for('public.ticket_view', code=t.ticket_code) }}">VIEW TICKET</a>
         <a class="btn btn-outline" href="{{ url_for('public.ticket_png', code=t.ticket_code) }}">DOWNLOAD PNG</a>
         <a class="btn btn-outline" href="{{ url_for('public.ticket_pdf', code=t.ticket_code) }}">DOWNLOAD PDF</a>
-        <button type="button" class="btn btn-outline"
-          onclick="navigator.clipboard.writeText('{{ t.ticket_code }}');this.textContent='COPIED!'">COPY TICKET NUMBER</button>
       </div>
     </div>
     {% else %}
-    <p style="margin-top:24px;color:var(--muted);max-width:420px;margin-left:auto;margin-right:auto">
-      You will receive a mail after your booking is approved.
+    {% if booking.payment_status == 'pending' %}
+    <p style="margin-top:24px">
+      <a class="btn btn-outline" href="{{ url_for('public.booking_status') }}">Check booking status</a>
     </p>
+    {% endif %}
     {% endfor %}
 
-    <p style="margin-top:28px;color:var(--muted);font-size:0.9rem;max-width:480px;margin-left:auto;margin-right:auto">
-      Keep your booking code safe. Single-use QR at the gate.
-    </p>
+    <p style="margin-top:28px;color:var(--muted);font-size:0.9rem">Keep your booking code safe.</p>
   </div>
 </section>
 {% endblock %}

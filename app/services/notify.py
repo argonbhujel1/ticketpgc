@@ -357,3 +357,38 @@ Official Ticketing System
     except Exception as e:
         current_app.logger.warning('Invalidation email failed: %s', e)
         return False
+
+
+def send_booking_rejected_email(booking):
+    """Notify buyer that booking was rejected with reason."""
+    to = (booking.buyer_email or '').strip()
+    if not to:
+        return False
+    cfg = _mail_cfg()
+    if not cfg.get('username') or not cfg.get('password') or not cfg.get('sender'):
+        return False
+    reason = (booking.rejection_reason or 'No reason provided.').strip()
+    subject = f'Booking {booking.booking_code} — Not approved'
+    body = (
+        f'Dear {booking.buyer_name},' + chr(10) + chr(10)
+        + f'Your booking {booking.booking_code} was not approved.' + chr(10) + chr(10)
+        + f'Reason: {reason}' + chr(10) + chr(10)
+        + 'If you have questions, contact the organizers.' + chr(10) + chr(10)
+        + '— Pathari Gold Cup' + chr(10)
+    )
+    try:
+        from email.mime.text import MIMEText
+        import smtplib
+        msg = MIMEText(body, 'plain', 'utf-8')
+        msg['Subject'] = subject
+        msg['From'] = cfg['sender']
+        msg['To'] = to
+        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=12) as s:
+            if cfg['use_tls']:
+                s.starttls()
+            s.login(cfg['username'], cfg['password'])
+            s.sendmail(cfg['sender'], [to], msg.as_string())
+        return True
+    except Exception as e:
+        current_app.logger.warning('reject email failed: %s', e)
+        return False

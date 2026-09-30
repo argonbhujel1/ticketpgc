@@ -213,6 +213,55 @@
   <div id="result"></div>
 
   <script>
+
+  function speakGate(text) {
+    try {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.95;
+      u.pitch = 1;
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  function announceScan(d) {
+    if (d.ok) {
+      speakGate('Valid ticket. Now you can enter.');
+      return;
+    }
+    if (d.status === 'used') {
+      let timeStr = '';
+      if (d.checked_in_at) {
+        try {
+          const dt = new Date(d.checked_in_at);
+          let h = dt.getHours();
+          const m = dt.getMinutes();
+          const s = dt.getSeconds();
+          const ampm = h >= 12 ? 'P M' : 'A M';
+          h = h % 12; if (h === 0) h = 12;
+          timeStr = h + ' ' + String(m).padStart(2,'0') + ' ' + String(s).padStart(2,'0') + ' ' + ampm;
+        } catch (e) {}
+      }
+      if (timeStr) {
+        speakGate('Already entered. By using this ticket someone already entered at ' + timeStr + '.');
+      } else {
+        speakGate('Already entered. This ticket was already used.');
+      }
+      return;
+    }
+    if (d.status === 'invalid' || d.status === 'error') {
+      speakGate('No ticket found.');
+      return;
+    }
+    if (d.status === 'cancelled') {
+      speakGate('Ticket cancelled. Entry not allowed.');
+      return;
+    }
+    speakGate(d.message || 'Scan failed.');
+  }
+
   const CHECK_URL = "{{ url_for('gate.check') }}";
   const COOLDOWN_MS = 4500;      // block same/any code while showing result
   const SAME_CODE_MS = 12000;    // same QR ignored longer
@@ -332,6 +381,7 @@
       if (navigator.vibrate) {
         navigator.vibrate(d.ok ? [50] : [90, 50, 90]);
       }
+      announceScan(d);
 
       // Keep result visible, then auto-ready for next ticket
       scheduleResume(COOLDOWN_MS);
