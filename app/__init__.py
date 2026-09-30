@@ -5,6 +5,22 @@ from config import config
 from app.extensions import db, login_manager, csrf
 
 
+def _ensure_schema(app):
+    """Add columns that create_all will not alter on existing Postgres tables."""
+    from sqlalchemy import text
+    stmts = [
+        "ALTER TABLE highlights ADD COLUMN IF NOT EXISTS video_url VARCHAR(500) DEFAULT ''",
+        "ALTER TABLE highlights ALTER COLUMN youtube_id DROP NOT NULL",
+        "ALTER TABLE highlights ALTER COLUMN youtube_id SET DEFAULT ''",
+    ]
+    with db.engine.begin() as conn:
+        for s in stmts:
+            try:
+                conn.execute(text(s))
+            except Exception as e:
+                app.logger.debug('schema skip %s: %s', s[:40], e)
+
+
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
@@ -23,7 +39,7 @@ def create_app(config_name=None):
     else:
         app.config['UPLOAD_FOLDER'] = Path(app.config['UPLOAD_FOLDER'])
 
-    for sub in ['logos', 'posters', 'qr', 'tickets', 'proofs', 'backgrounds']:
+    for sub in ['logos', 'posters', 'qr', 'tickets', 'proofs', 'backgrounds', 'highlights']:
         try:
             (Path(app.config['UPLOAD_FOLDER']) / sub).mkdir(parents=True, exist_ok=True)
         except OSError:
@@ -51,16 +67,51 @@ def create_app(config_name=None):
     def inject_globals():
         from app.models.settings import SiteSetting
         from config import Config
+
         def get_setting(key, default=''):
             try:
                 return SiteSetting.get(key, default)
             except Exception:
                 return default
+
         return {
             'site_name': get_setting('site_name', Config.SITE_NAME),
             'site_tagline': get_setting('site_tagline', 'Football. Passion. Glory.'),
             'site_year': Config.SITE_YEAR,
             'get_setting': get_setting,
+        }
+
+    @app.context_processor
+    def inject_branding():
+        from app.models.settings import SiteSetting
+        from flask import url_for
+
+        def media_url(rel):
+            if not rel:
+                return None
+            # Cloudinary / absolute URL stored in DB
+            if str(rel).startswith('http://') or str(rel).startswith('https://'):
+                return rel
+            try:
+                return url_for('public.media', filename=rel)
+            except Exception:
+                return None
+
+        def team_logo_url(team):
+            if team and getattr(team, 'logo', None):
+                return media_url(team.logo)
+            return None
+
+        try:
+            site_logo = SiteSetting.get('site_logo', '')
+        except Exception:
+            site_logo = ''
+        return {
+            'site_logo_rel': site_logo,
+            'site_logo_url': media_url(site_logo) if site_logo else None,
+            'team_logo_url': team_logo_url,
+            'media_url': media_url,
+            'get_setting': SiteSetting.get,
         }
 
     @app.errorhandler(404)
@@ -79,36 +130,18 @@ def create_app(config_name=None):
 
     with app.app_context():
         try:
+            # Concurrent Vercel cold-starts can race on CREATE TYPE — safe to ignore
             db.create_all()
+        except Exception as e:
+            app.logger.warning('DB create_all: %s', e)
+        try:
+            _ensure_schema(app)
+        except Exception as e:
+            app.logger.warning('schema ensure: %s', e)
+        try:
             from app.services.seed import seed_default_data
             seed_default_data()
         except Exception as e:
-            app.logger.warning('DB init deferred: %s', e)
-
-
-    @app.context_processor
-    def inject_branding():
-        from app.models.settings import SiteSetting
-        def media_url(rel):
-            if not rel:
-                return None
-            # uploaded files
-            from flask import url_for
-            try:
-                return url_for('public.media', filename=rel)
-            except Exception:
-                return None
-        def team_logo_url(team):
-            if team and getattr(team, 'logo', None):
-                return media_url(team.logo)
-            return None
-        site_logo = SiteSetting.get('site_logo', '')
-        return {
-            'site_logo_rel': site_logo,
-            'site_logo_url': media_url(site_logo) if site_logo else None,
-            'team_logo_url': team_logo_url,
-            'media_url': media_url,
-            'get_setting': SiteSetting.get,
-        }
+            app.logger.warning('DB seed deferred: %s', e)
 
     return app

@@ -45,7 +45,7 @@
         {% if qr_pay and qr_image %}
         <div style="text-align:center;margin:16px 0;padding:16px;background:rgba(0,0,0,0.35);border-radius:12px;border:1px solid var(--glass-border)">
           <p style="font-size:0.85rem;color:var(--gold);margin-bottom:10px;font-weight:700">Scan & pay this QR</p>
-          <img src="{{ url_for('public.media', filename=qr_image) }}" alt="Payment QR"
+          <img src="{{ media_url(qr_image) }}" alt="Payment QR"
                style="max-width:220px;width:100%;border-radius:12px;background:#fff;padding:8px">
           {% if instructions %}
           <p style="font-size:0.8rem;color:var(--muted);margin-top:10px">{{ instructions }}</p>

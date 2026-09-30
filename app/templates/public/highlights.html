@@ -10,6 +10,16 @@
       {% for h in highlights %}
       <div class="highlight-card">
         {% if h.title %}<h2 class="highlight-title">{{ h.title }}</h2>{% endif %}
+        {% if h.video_url %}
+        <div class="yt-wrap yt-wrap-video">
+          <video
+            src="{{ h.video_url }}"
+            controls
+            playsinline
+            preload="metadata"
+            title="{{ h.title or 'Match highlight' }}"></video>
+        </div>
+        {% elif h.youtube_id %}
         <div class="yt-wrap">
           <iframe
             src="https://www.youtube.com/embed/{{ h.youtube_id }}?rel=0"
@@ -18,6 +28,7 @@
             allowfullscreen
             loading="lazy"></iframe>
         </div>
+        {% endif %}
         {% if h.description %}<p class="highlight-desc">{{ h.description }}</p>{% endif %}
       </div>
       {% endfor %}

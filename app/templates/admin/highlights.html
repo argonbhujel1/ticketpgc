@@ -1,11 +1,11 @@
 {% extends "admin/base.html" %}
 {% block title %}Highlights{% endblock %}
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+<div class="page-head">
   <h2>Match Highlights</h2>
   <a class="btn" href="{{ url_for('admin.highlight_new') }}">+ Add Highlight</a>
 </div>
-<p style="color:var(--muted);margin-bottom:16px">YouTube videos shown on the homepage under the hero section. Add multiple — order by Sort order (lower = first).</p>
+<p style="color:var(--muted);margin-bottom:16px">YouTube or Cloudinary video — public page: /highlights</p>
 <form method="post" action="{{ url_for('admin.highlight_bulk_delete') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
@@ -18,7 +18,7 @@
       <th></th>
       <th>Preview</th>
       <th>Title</th>
-      <th>YouTube ID</th>
+      <th>Source</th>
       <th>Order</th>
       <th>Active</th>
       <th></th>
@@ -27,11 +27,17 @@
     <tr>
       <td><input class="row-cb" type="checkbox" name="ids" value="{{ h.id }}"></td>
       <td>
-        <img src="https://img.youtube.com/vi/{{ h.youtube_id }}/mqdefault.jpg"
-             alt="" style="width:120px;border-radius:6px;display:block">
+        {% if h.youtube_id %}
+        <img src="https://img.youtube.com/vi/{{ h.youtube_id }}/mqdefault.jpg" alt="" style="width:120px;border-radius:6px">
+        {% elif h.video_url %}
+        <video src="{{ h.video_url }}" style="width:120px;border-radius:6px" muted></video>
+        {% else %}—{% endif %}
       </td>
       <td>{{ h.title }}</td>
-      <td><code>{{ h.youtube_id }}</code></td>
+      <td>
+        {% if h.youtube_id %}<code>YT: {{ h.youtube_id }}</code>{% endif %}
+        {% if h.video_url %}<div style="font-size:0.75rem;color:var(--muted)">Cloudinary video</div>{% endif %}
+      </td>
       <td>{{ h.sort_order }}</td>
       <td>{% if h.is_active %}✅{% else %}—{% endif %}</td>
       <td style="white-space:nowrap">

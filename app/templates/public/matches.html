@@ -11,7 +11,7 @@
         <div class="teams">
           <div class="team">
             {% if m.home_team and m.home_team.logo %}
-            <div class="crest crest-img"><img src="{{ url_for('public.media', filename=m.home_team.logo) }}" alt=""></div>
+            <div class="crest crest-img"><img src="{{ media_url(m.home_team.logo) }}" alt=""></div>
             {% else %}
             <div class="crest">{{ (m.home_team.short_name or m.home_team.name)[:2]|upper }}</div>
             {% endif %}
@@ -20,7 +20,7 @@
           <div class="vs">VS</div>
           <div class="team">
             {% if m.away_team and m.away_team.logo %}
-            <div class="crest crest-img"><img src="{{ url_for('public.media', filename=m.away_team.logo) }}" alt=""></div>
+            <div class="crest crest-img"><img src="{{ media_url(m.away_team.logo) }}" alt=""></div>
             {% else %}
             <div class="crest" style="background:linear-gradient(145deg,#b71c1c,#7f0000)">{{ (m.away_team.short_name or m.away_team.name)[:2]|upper }}</div>
             {% endif %}

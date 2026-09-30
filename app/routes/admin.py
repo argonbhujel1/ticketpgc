@@ -582,6 +582,8 @@ def uploaded_file(filename):
     """Serve upload files (QR, payment proofs) for admin."""
     if filename.startswith('http://') or filename.startswith('https://'):
         return redirect(filename)
+    if 'res.cloudinary.com' in filename:
+        return redirect('https://' + filename.lstrip('/'))
     root = PathLib(current_app.config['UPLOAD_FOLDER'])
     return send_from_directory(root, filename)
 
@@ -608,14 +610,20 @@ def highlights():
 def highlight_new():
     if request.method == 'POST':
         from app.services.cloudinary_store import youtube_id_from_url
+        from app.services.uploads import save_upload
         yt_raw = (request.form.get('youtube_url') or '').strip()
-        yt_id = youtube_id_from_url(yt_raw)
-        if not yt_id:
-            flash('Valid YouTube URL or video ID required.', 'error')
+        yt_id = youtube_id_from_url(yt_raw) if yt_raw else ''
+        video_url = ''
+        f = request.files.get('video_file')
+        if f and f.filename:
+            video_url = save_upload(f, folder='highlights', resource_type='video') or ''
+        if not yt_id and not video_url:
+            flash('YouTube link/embed or video file required.', 'error')
             return render_template('admin/highlight_form.html', item=None)
         h = Highlight(
             title=(request.form.get('title') or 'Match Highlight').strip()[:200],
-            youtube_id=yt_id,
+            youtube_id=yt_id or '',
+            video_url=video_url or '',
             description=(request.form.get('description') or '').strip()[:500],
             sort_order=int(request.form.get('sort_order') or 0),
             is_active=bool(request.form.get('is_active')),
@@ -633,13 +641,24 @@ def highlight_edit(id):
     item = Highlight.query.get_or_404(id)
     if request.method == 'POST':
         from app.services.cloudinary_store import youtube_id_from_url
+        from app.services.uploads import save_upload
         yt_raw = (request.form.get('youtube_url') or '').strip()
-        yt_id = youtube_id_from_url(yt_raw) if yt_raw else item.youtube_id
-        if not yt_id:
-            flash('Valid YouTube URL or video ID required.', 'error')
+        yt_id = youtube_id_from_url(yt_raw) if yt_raw else (item.youtube_id or '')
+        video_url = item.video_url or ''
+        f = request.files.get('video_file')
+        if f and f.filename:
+            uploaded = save_upload(f, folder='highlights', resource_type='video')
+            if uploaded:
+                video_url = uploaded
+        # clear video if requested
+        if request.form.get('clear_video'):
+            video_url = ''
+        if not yt_id and not video_url:
+            flash('YouTube link/embed or video file required.', 'error')
             return render_template('admin/highlight_form.html', item=item)
         item.title = (request.form.get('title') or 'Match Highlight').strip()[:200]
-        item.youtube_id = yt_id
+        item.youtube_id = yt_id or ''
+        item.video_url = video_url or ''
         item.description = (request.form.get('description') or '').strip()[:500]
         item.sort_order = int(request.form.get('sort_order') or 0)
         item.is_active = bool(request.form.get('is_active'))

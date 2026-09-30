@@ -342,11 +342,14 @@ def about():
 
 @public_bp.route('/media/<path:filename>')
 def media(filename):
+    """Serve local upload or redirect Cloudinary / absolute URLs."""
+    from flask import send_from_directory, redirect
+    # full URL stored as path somehow
     if filename.startswith('http://') or filename.startswith('https://'):
         return redirect(filename)
-
-    """Public media (payment QR image)."""
-    from flask import send_from_directory
+    # Cloudinary path accidentally stored without scheme handled above
+    if 'res.cloudinary.com' in filename:
+        return redirect('https://' + filename.lstrip('/'))
     root = Path(current_app.config['UPLOAD_FOLDER'])
     return send_from_directory(root, filename)
 

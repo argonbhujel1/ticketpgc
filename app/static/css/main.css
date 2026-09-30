@@ -656,3 +656,18 @@ footer {
   }
 }
 
+
+
+.yt-wrap-video {
+  padding-bottom: 0 !important;
+  height: auto !important;
+  background: #000;
+}
+.yt-wrap-video video {
+  position: relative !important;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  display: block;
+  border: 0;
+}
