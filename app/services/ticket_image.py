@@ -1,4 +1,7 @@
-"""Generate professional stadium-style digital ticket PNG (Pathari Gold Cup)."""
+"""Generate professional stadium-style digital ticket PNG (Pathari Gold Cup).
+
+Layout: ~50% details (left) · ~50% large QR (right) for easy gate scanning.
+"""
 from __future__ import annotations
 
 import io
@@ -7,7 +10,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 import qrcode
 
-W, H = 1200, 420
+# Wide ticket — room for a large scannable QR
+W, H = 1200, 520
 
 
 def _font(size: int, bold: bool = False):
@@ -49,7 +53,7 @@ def _placeholder_crest(draw_target, box, name, color):
     draw_target.ellipse([x, y, x + s, y + s], fill=color, outline=(255, 215, 0), width=3)
     parts = [w for w in (name or 'FC').split() if w]
     initials = ''.join(w[0] for w in parts[:2]).upper() or 'FC'
-    f = _font(22, bold=True)
+    f = _font(max(16, s // 3), bold=True)
     bbox = draw_target.textbbox((0, 0), initials, font=f)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw_target.text((x + (s - tw) / 2, y + (s - th) / 2 - 2), initials, fill='white', font=f)
@@ -71,30 +75,28 @@ def _default_bg():
 
 def _load_background(bg_path):
     """Stadium / brand image as ticket body — keep colors visible, readable text."""
-    if bg_path and Path(bg_path).is_file():
+    if bg_path:
         try:
-            bg = Image.open(bg_path).convert('RGB')
-            # Cover-fit: fill canvas, crop center
-            src_w, src_h = bg.size
-            scale = max(W / src_w, H / src_h)
-            nw, nh = int(src_w * scale), int(src_h * scale)
-            bg = bg.resize((nw, nh), Image.Resampling.LANCZOS)
-            left = (nw - W) // 2
-            top = (nh - H) // 2
-            bg = bg.crop((left, top, left + W, top + H))
-            # Gentle darken only (not muddy)
-            bg = ImageEnhance.Brightness(bg).enhance(0.85)
-            bg = ImageEnhance.Contrast(bg).enhance(1.08)
-            bg = ImageEnhance.Color(bg).enhance(1.1)
-            # Soft gradient scrim: darker bottom for meta text, lighter top for logos
-            overlay = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-            od = ImageDraw.Draw(overlay)
-            for y in range(H):
-                # top light, bottom stronger for readability
-                a = int(20 + (y / H) * 70)
-                od.line([(0, y), (W, y)], fill=(8, 12, 28, a))
-            bg = Image.alpha_composite(bg.convert('RGBA'), overlay).convert('RGB')
-            return bg
+            p = Path(bg_path)
+            if p.is_file():
+                bg = Image.open(p).convert('RGB')
+                src_w, src_h = bg.size
+                scale = max(W / src_w, H / src_h)
+                nw, nh = int(src_w * scale), int(src_h * scale)
+                bg = bg.resize((nw, nh), Image.Resampling.LANCZOS)
+                left = (nw - W) // 2
+                top = (nh - H) // 2
+                bg = bg.crop((left, top, left + W, top + H))
+                bg = ImageEnhance.Brightness(bg).enhance(0.82)
+                bg = ImageEnhance.Contrast(bg).enhance(1.08)
+                bg = ImageEnhance.Color(bg).enhance(1.1)
+                overlay = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+                od = ImageDraw.Draw(overlay)
+                for y in range(H):
+                    a = int(25 + (y / H) * 80)
+                    od.line([(0, y), (W, y)], fill=(8, 12, 28, a))
+                bg = Image.alpha_composite(bg.convert('RGBA'), overlay).convert('RGB')
+                return bg
         except Exception:
             pass
     return _default_bg()
@@ -112,6 +114,7 @@ def generate_ticket_png(
     trophy_path=None,
     footer_credit='Engineered by Argon Bhujel · Pathari Gold Cup',
 ):
+    """Half details (left) · half large QR (right)."""
     base = _load_background(background_path).convert('RGBA')
     draw = ImageDraw.Draw(base)
 
@@ -120,23 +123,24 @@ def generate_ticket_png(
     WHITE = (255, 255, 255)
     NAVY = (10, 18, 40)
     DARK = (6, 12, 28)
+    MUTED = (170, 180, 190)
 
-    # Left strip — full trophy photo (t.jpg), brand text below
-    STRIP_W = 160
-    draw.rounded_rectangle([0, 0, STRIP_W, H], radius=16, fill=DARK)
+    # ── Layout split: left details | right QR ─────────────────────
+    # Brand strip + details ≈ left half; QR panel ≈ right half
+    STRIP_W = 120
+    MID = W // 2  # 600
+    DETAILS_LEFT = STRIP_W + 16
+    DETAILS_RIGHT = MID - 12
+    QR_PANEL_X = MID + 8
 
-    f_brand = _font(12, bold=True)
-    f_tiny = _font(9)
-    f_small = _font(11)
+    # Left brand strip
+    draw.rounded_rectangle([0, 0, STRIP_W, H], radius=14, fill=DARK)
 
-    trophy_img = None
+    # Trophy in strip
     if trophy_path and Path(trophy_path).is_file():
         try:
             tr = Image.open(trophy_path).convert('RGBA')
-            # Fit trophy tall in strip (almost full height of upper strip)
-            max_w, max_h = STRIP_W - 10, 280
-            tr.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
-            # Optional: clear pure white corners for cleaner look on dark strip
+            tr.thumbnail((STRIP_W - 16, 220), Image.Resampling.LANCZOS)
             pixels = list(tr.getdata())
             cleaned = []
             for r, g, b, a in pixels:
@@ -145,48 +149,34 @@ def generate_ticket_png(
                 else:
                     cleaned.append((r, g, b, a))
             tr.putdata(cleaned)
-            trophy_img = tr
+            tx = (STRIP_W - tr.width) // 2
+            ty = 24
+            base.paste(tr, (tx, ty), tr)
         except Exception:
-            trophy_img = _load_logo(trophy_path, (STRIP_W - 20, 180))
+            pass
 
-    if trophy_img:
-        tx = (STRIP_W - trophy_img.width) // 2
-        ty_img = 12
-        base.paste(trophy_img, (tx, ty_img), trophy_img)
-        text_y = ty_img + trophy_img.height + 8
-    else:
-        text_y = 40
+    f_brand = _font(11, bold=True)
+    for i, line in enumerate(['PATHARI', 'GOLD', 'CUP', '2026']):
+        bbox = draw.textbbox((0, 0), line, font=f_brand)
+        tw = bbox[2] - bbox[0]
+        draw.text(((STRIP_W - tw) / 2, H - 110 + i * 18), line, fill=GOLD, font=f_brand)
 
-    # Keep brand text readable under trophy
-    if text_y > H - 100:
-        text_y = H - 95
-    draw.text((18, text_y), 'PATHARI', fill=GOLD, font=f_brand)
-    draw.text((12, text_y + 16), 'GOLD CUP', fill=GOLD_LIGHT, font=f_brand)
-    draw.text((28, text_y + 36), '2026', fill=GOLD, font=f_small)
-    draw.line([(16, text_y + 54), (STRIP_W - 16, text_y + 54)], fill=GOLD, width=2)
-    draw.text((12, H - 48), 'Football Unites', fill=GOLD_LIGHT, font=f_tiny)
-    draw.text((18, H - 34), 'Our Community', fill=GOLD_LIGHT, font=f_tiny)
+    # ── LEFT HALF: match details ──────────────────────────────────
+    home_full = (home_team.name if home_team else 'Home') or 'Home'
+    away_full = (away_team.name if away_team else 'Away') or 'Away'
+    home_short = (getattr(home_team, 'short_name', None) or home_full) if home_team else 'Home'
+    away_short = (getattr(away_team, 'short_name', None) or away_full) if away_team else 'Away'
 
-    f_title = _font(26, bold=True)
-    f_sub = _font(12)
-    title = 'PATHARI GOLD CUP'
-    bbox = draw.textbbox((0, 0), title, font=f_title)
-    tw = bbox[2] - bbox[0]
-    center_mid = 155 + (W - 280 - 155) / 2
-    draw.text((center_mid - tw / 2, 22), title, fill=WHITE, font=f_title)
-    sub = 'FOOTBALL TOURNAMENT'
-    bbox = draw.textbbox((0, 0), sub, font=f_sub)
-    sw = bbox[2] - bbox[0]
-    draw.text((center_mid - sw / 2, 54), sub, fill=GOLD, font=f_sub)
+    f_title = _font(15, bold=True)
+    draw.text((DETAILS_LEFT, 18), 'PATHARI GOLD CUP 2026', fill=GOLD_LIGHT, font=f_title)
 
-    home_full = (home_team.name if home_team else 'HOME') or 'HOME'
-    away_full = (away_team.name if away_team else 'AWAY') or 'AWAY'
-
-    logo_y = 95
-    left_x, right_x = 230, 540
-    s = 96
-    home_logo = _load_logo(home_logo_path, (s, s))
-    away_logo = _load_logo(away_logo_path, (s, s))
+    # Team crests
+    s = 88
+    logo_y = 52
+    left_x = DETAILS_LEFT + 10
+    right_x = DETAILS_LEFT + 200
+    home_logo = _load_logo(home_logo_path, size=(s, s))
+    away_logo = _load_logo(away_logo_path, size=(s, s))
 
     if home_logo:
         base.paste(home_logo, (left_x, logo_y), home_logo)
@@ -212,23 +202,24 @@ def generate_ticket_png(
                 pass
         _placeholder_crest(draw, (right_x, logo_y, s), away_full, color)
 
-    f_vs = _font(28, bold=True)
-    draw.text((400, 125), 'VS', fill=GOLD_LIGHT, font=f_vs)
+    f_vs = _font(22, bold=True)
+    draw.text((DETAILS_LEFT + 145, logo_y + 30), 'VS', fill=GOLD_LIGHT, font=f_vs)
 
-    f_team = _font(13, bold=True)
-    for name, cx in ((home_full.upper(), left_x + s // 2), (away_full.upper(), right_x + s // 2)):
+    f_team = _font(12, bold=True)
+    for name, cx in ((home_short.upper(), left_x + s // 2), (away_short.upper(), right_x + s // 2)):
         bbox = draw.textbbox((0, 0), name, font=f_team)
         nw = bbox[2] - bbox[0]
         draw.text((cx - nw / 2, logo_y + s + 6), name, fill=WHITE, font=f_team)
 
-    f_meta = _font(13)
-    f_meta_b = _font(13, bold=True)
-    f_tiny2 = _font(10)
-    meta_y = 230
+    # Date / venue
+    f_meta = _font(14)
+    f_meta_b = _font(15, bold=True)
+    f_tiny2 = _font(11)
+    meta_y = 175
     if match and match.match_date:
         dt = match.match_date
         date_str = dt.strftime('%d %b %Y').upper()
-        day_str = dt.strftime('(%A)')
+        day_str = dt.strftime('%A')
         time_str = dt.strftime('%I:%M %p')
     else:
         date_str, day_str, time_str = 'TBD', '', 'TBD'
@@ -236,75 +227,104 @@ def generate_ticket_png(
     venue = (match.venue if match else 'Pathari, Morang') or 'Pathari, Morang'
     venue_d = (match.venue_detail if match else '') or ''
 
-    draw.text((185, meta_y), f'{date_str}  {day_str}', fill=WHITE, font=f_meta)
-    draw.text((430, meta_y), f'{time_str}  Kick-off', fill=WHITE, font=f_meta)
-    draw.text((185, meta_y + 26), f'{venue}', fill=WHITE, font=f_meta)
+    draw.text((DETAILS_LEFT, meta_y), f'{date_str}  ·  {day_str}', fill=WHITE, font=f_meta_b)
+    draw.text((DETAILS_LEFT, meta_y + 26), f'{time_str}  Kick-off', fill=WHITE, font=f_meta)
+    draw.text((DETAILS_LEFT, meta_y + 52), venue, fill=WHITE, font=f_meta)
     if venue_d:
-        draw.text((185, meta_y + 48), f'({venue_d})', fill=(180, 210, 180), font=f_tiny2)
+        draw.text((DETAILS_LEFT, meta_y + 74), f'({venue_d})', fill=(180, 210, 180), font=f_tiny2)
 
     cls_name = (ticket_class.name if ticket_class else 'General') or 'General'
     gate = (ticket_class.gate if ticket_class else 'Gate 1') or 'Gate 1'
     zone = (ticket_class.zone if ticket_class else 'East Stand') or 'East Stand'
     price = float(ticket_class.price) if ticket_class else 0
     code = ticket.ticket_code if ticket else 'PGC-TKT-XXXX'
+    holder = (ticket.holder_name if ticket else '') or ''
 
-    chip_y = 318
-    badge_w = max(90, 14 + len(cls_name) * 9)
-    draw.rounded_rectangle([185, chip_y, 185 + badge_w, chip_y + 34], radius=8, fill=GOLD)
-    f_badge = _font(13, bold=True)
+    # Class badge + gate/zone/price
+    chip_y = 290
+    badge_w = max(100, 18 + len(cls_name) * 10)
+    draw.rounded_rectangle([DETAILS_LEFT, chip_y, DETAILS_LEFT + badge_w, chip_y + 36], radius=8, fill=GOLD)
+    f_badge = _font(14, bold=True)
     bbox = draw.textbbox((0, 0), cls_name.upper(), font=f_badge)
     bw = bbox[2] - bbox[0]
-    draw.text((185 + (badge_w - bw) / 2, chip_y + 8), cls_name.upper(), fill=DARK, font=f_badge)
+    draw.text((DETAILS_LEFT + (badge_w - bw) / 2, chip_y + 9), cls_name.upper(), fill=DARK, font=f_badge)
 
-    col1 = 185 + badge_w + 20
-    col2 = col1 + 110
-    col3 = col2 + 130
-    draw.text((col1, chip_y + 2), 'GATE', fill=(170, 180, 190), font=f_tiny2)
+    col1 = DETAILS_LEFT + badge_w + 18
+    draw.text((col1, chip_y + 2), 'GATE', fill=MUTED, font=f_tiny2)
     draw.text((col1, chip_y + 16), str(gate), fill=WHITE, font=f_meta_b)
-    draw.text((col2, chip_y + 2), 'ZONE', fill=(170, 180, 190), font=f_tiny2)
-    draw.text((col2, chip_y + 16), str(zone), fill=WHITE, font=f_meta_b)
-    draw.text((col3, chip_y + 2), 'PRICE', fill=(170, 180, 190), font=f_tiny2)
-    draw.text((col3, chip_y + 16), f'Rs. {price:.0f}', fill=GOLD_LIGHT, font=f_meta_b)
+    draw.text((col1 + 100, chip_y + 2), 'ZONE', fill=MUTED, font=f_tiny2)
+    draw.text((col1 + 100, chip_y + 16), str(zone)[:14], fill=WHITE, font=f_meta_b)
+    draw.text((col1 + 220, chip_y + 2), 'PRICE', fill=MUTED, font=f_tiny2)
+    draw.text((col1 + 220, chip_y + 16), f'Rs. {price:.0f}', fill=GOLD_LIGHT, font=f_meta_b)
+
+    if holder:
+        draw.text((DETAILS_LEFT, 350), 'HOLDER', fill=MUTED, font=f_tiny2)
+        draw.text((DETAILS_LEFT, 366), holder[:36], fill=WHITE, font=f_meta_b)
+
+    draw.text((DETAILS_LEFT, 400), 'TICKET ID', fill=MUTED, font=f_tiny2)
+    draw.text((DETAILS_LEFT, 416), code, fill=GOLD_LIGHT, font=f_meta_b)
 
     if footer_credit:
         f_cred = _font(9)
-        bbox = draw.textbbox((0, 0), footer_credit, font=f_cred)
-        cw = bbox[2] - bbox[0]
-        draw.text((center_mid - cw / 2, H - 22), footer_credit, fill=(160, 170, 180), font=f_cred)
+        draw.text((DETAILS_LEFT, H - 28), footer_credit[:55], fill=(140, 150, 160), font=f_cred)
 
-    stub_x = W - 280
-    draw.rounded_rectangle([stub_x, 10, W - 10, H - 10], radius=14, fill=(248, 250, 252))
-    draw.rounded_rectangle([W - 68, 10, W - 10, H - 10], radius=12, fill=DARK)
-    draw.rectangle([W - 68, 10, W - 48, H - 10], fill=DARK)
-    for yy in range(28, H - 28, 12):
-        draw.line([(stub_x - 2, yy), (stub_x - 2, yy + 6)], fill=(200, 200, 210), width=2)
+    # ── RIGHT HALF: large QR panel ────────────────────────────────
+    # Light panel for max QR contrast
+    draw.rounded_rectangle([QR_PANEL_X, 12, W - 12, H - 12], radius=18, fill=(252, 253, 255))
+    # Gold accent bar on left edge of panel
+    draw.rectangle([QR_PANEL_X, 12, QR_PANEL_X + 6, H - 12], fill=GOLD)
 
-    f_stub = _font(11, bold=True)
-    draw.text((stub_x + 22, 28), 'TICKET ID', fill=(100, 110, 120), font=f_tiny2)
-    draw.text((stub_x + 22, 44), code, fill=NAVY, font=f_stub)
+    f_stub = _font(13, bold=True)
+    f_stub_sm = _font(11)
+    panel_cx = (QR_PANEL_X + W - 12) // 2
 
-    payload = ticket.qr_payload if ticket and ticket.qr_payload else code
-    qr = qrcode.QRCode(version=1, box_size=4, border=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    label = 'SCAN AT GATE'
+    bbox = draw.textbbox((0, 0), label, font=f_stub)
+    lw = bbox[2] - bbox[0]
+    draw.text((panel_cx - lw / 2, 28), label, fill=NAVY, font=f_stub)
+
+    # Large QR — ~ half the panel, high error correction for dirty/partial scans
+    payload = ticket.qr_payload if ticket and getattr(ticket, 'qr_payload', None) else code
+    qr = qrcode.QRCode(
+        version=None,
+        box_size=12,
+        border=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+    )
     qr.add_data(payload)
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color='black', back_color='white').convert('RGB')
-    qr_img = qr_img.resize((128, 128), Image.Resampling.NEAREST)
-    base.paste(qr_img, (stub_x + 42, 78))
 
-    draw.rounded_rectangle([stub_x + 28, 225, stub_x + 178, 256], radius=6, fill=NAVY)
-    draw.text((stub_x + 46, 233), 'SCAN AT GATE', fill=WHITE, font=f_stub)
-    draw.text((stub_x + 38, 270), 'One ticket = One entry', fill=(120, 130, 140), font=f_tiny2)
-    draw.text((stub_x + 22, H - 48), code, fill=(80, 90, 100), font=f_tiny2)
+    # Target QR size: use most of right panel (~340–380px)
+    QR_SIZE = 360
+    qr_img = qr_img.resize((QR_SIZE, QR_SIZE), Image.Resampling.NEAREST)
+    qx = panel_cx - QR_SIZE // 2
+    qy = 58
+    # White padding around QR
+    pad = 12
+    draw.rounded_rectangle(
+        [qx - pad, qy - pad, qx + QR_SIZE + pad, qy + QR_SIZE + pad],
+        radius=10,
+        fill=(255, 255, 255),
+        outline=(220, 225, 230),
+        width=2,
+    )
+    base.paste(qr_img, (qx, qy))
 
-    f_side = _font(10, bold=True)
-    draw.text((W - 58, 90), cls_name.upper()[:6], fill=GOLD, font=f_side)
-    bx = W - 54
-    for i, hh in enumerate([16, 26, 12, 28, 18, 24, 14, 22, 10, 26, 16, 20]):
-        draw.rectangle([bx, 190 + i * 8, bx + 3, 190 + i * 8 + max(4, hh // 3)], fill=GOLD)
+    # Code under QR
+    bbox = draw.textbbox((0, 0), code, font=f_stub)
+    cw = bbox[2] - bbox[0]
+    draw.text((panel_cx - cw / 2, qy + QR_SIZE + 18), code, fill=NAVY, font=f_stub)
 
+    one = 'One ticket = One entry'
+    bbox = draw.textbbox((0, 0), one, font=f_stub_sm)
+    ow = bbox[2] - bbox[0]
+    draw.text((panel_cx - ow / 2, qy + QR_SIZE + 42), one, fill=(100, 110, 120), font=f_stub_sm)
+
+    # Outer gold border
     border = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     bd = ImageDraw.Draw(border)
-    bd.rounded_rectangle([2, 2, W - 3, H - 3], radius=18, outline=GOLD + (200,), width=3)
+    bd.rounded_rectangle([2, 2, W - 3, H - 3], radius=18, outline=GOLD + (220,), width=3)
     base = Image.alpha_composite(base, border)
 
     out = io.BytesIO()
