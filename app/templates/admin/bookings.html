@@ -1,21 +1,30 @@
 {% extends "admin/base.html" %}
 {% block title %}Bookings{% endblock %}
 {% block content %}
-<h2 style="margin-bottom:12px">Bookings</h2>
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+  <h2 style="margin:0">Bookings</h2>
+  <div style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:var(--muted)">
+    <span id="autoRefreshLabel">Auto-refresh 5s</span>
+    <button type="button" id="btnToggleRefresh" class="btn btn-outline" style="padding:6px 12px;min-height:auto;font-size:0.8rem">Pause</button>
+  </div>
+</div>
 <p style="margin-bottom:12px">
-  <a href="?">All</a> · <a href="?status=pending">Pending</a> · <a href="?status=paid">Paid</a>
+  <a href="?">All</a> ·
+  <a href="?status=pending">Pending</a> ·
+  <a href="?status=paid">Paid</a> ·
+  <a href="?status=rejected">Rejected</a>
 </p>
-<form method="post" action="{{ url_for('admin.booking_bulk_delete') }}">
+<form method="post" action="{{ url_for('admin.booking_bulk_delete') }}" id="bookingsForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
     <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=true)">Select all</button>
     <button type="button" class="btn btn-outline" onclick="document.querySelectorAll('.row-cb').forEach(c=>c.checked=false)">Clear</button>
-    <button type="submit" class="js-bulk-delete" data-confirm="Delete selected items?" class="btn" style="background:#c62828" >Delete selected</button>
+    <button type="submit" class="js-bulk-delete" data-confirm="Delete selected items?" class="btn" style="background:#c62828">Delete selected</button>
   </div>
   <table>
     <tr><th></th><th>Code</th><th>Buyer</th><th>Qty</th><th>Total</th><th>Method</th><th>Proof</th><th>Status</th><th></th></tr>
     {% for b in bookings %}
-    <tr>
+    <tr {% if b.payment_status == 'pending' %}style="background:rgba(201,162,39,0.08)"{% endif %}>
       <td><input class="row-cb" type="checkbox" name="ids" value="{{ b.id }}"></td>
       <td><a href="{{ url_for('admin.booking_detail', id=b.id) }}" style="color:var(--gold)">{{ b.booking_code }}</a></td>
       <td>{{ b.buyer_name }}<br><small style="color:var(--muted)">{{ b.buyer_phone }}</small></td>
@@ -26,14 +35,70 @@
       <td>{{ b.payment_status }}</td>
       <td style="white-space:nowrap">
         <a class="btn btn-outline" href="{{ url_for('admin.booking_detail', id=b.id) }}">View</a>
-        {% if b.payment_status != 'paid' %}
+        {% if b.payment_status not in ('paid', 'rejected') %}
         <button formaction="{{ url_for('admin.booking_confirm', id=b.id) }}" formmethod="post" class="btn">Confirm</button>
         {% endif %}
-        <button data-confirm="Delete this booking?" formaction="{{ url_for('admin.booking_delete', id=b.id) }}" formmethod="post" class="btn" style="background:#c62828"
-          >Delete</button>
+        <button data-confirm="Delete this booking?" formaction="{{ url_for('admin.booking_delete', id=b.id) }}" formmethod="post" class="btn" style="background:#c62828">Delete</button>
       </td>
     </tr>
+    {% else %}
+    <tr><td colspan="9" style="color:var(--muted)">No bookings yet.</td></tr>
     {% endfor %}
   </table>
 </form>
+<script>
+(function () {
+  var INTERVAL = 5000;
+  var enabled = true;
+  var timer = null;
+  var left = INTERVAL / 1000;
+  var label = document.getElementById('autoRefreshLabel');
+  var btn = document.getElementById('btnToggleRefresh');
+
+  function tick() {
+    if (!enabled) return;
+    left -= 1;
+    if (left <= 0) {
+      // don't reload if user has selected rows (avoid losing selection)
+      var checked = document.querySelectorAll('.row-cb:checked').length;
+      if (checked > 0) {
+        left = INTERVAL / 1000;
+        label.textContent = 'Auto-refresh paused (selection)';
+        return;
+      }
+      label.textContent = 'Refreshing…';
+      window.location.reload();
+      return;
+    }
+    label.textContent = 'Auto-refresh ' + left + 's';
+  }
+
+  function start() {
+    enabled = true;
+    left = INTERVAL / 1000;
+    btn.textContent = 'Pause';
+    label.textContent = 'Auto-refresh ' + left + 's';
+    if (timer) clearInterval(timer);
+    timer = setInterval(tick, 1000);
+  }
+
+  function stop() {
+    enabled = false;
+    if (timer) clearInterval(timer);
+    timer = null;
+    btn.textContent = 'Resume';
+    label.textContent = 'Auto-refresh off';
+  }
+
+  btn.addEventListener('click', function () {
+    if (enabled) stop();
+    else start();
+  });
+
+  // pause while typing/confirm dialogs
+  document.getElementById('bookingsForm').addEventListener('submit', stop);
+
+  start();
+})();
+</script>
 {% endblock %}

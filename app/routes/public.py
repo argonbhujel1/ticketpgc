@@ -221,8 +221,29 @@ def payment():
         session.pop('buyer', None)
 
         if booking.payment_status == 'paid':
+            try:
+                from app.services.notify import notify_tickets_issued
+                issued = Ticket.query.filter_by(booking_id=booking.id).all()
+                if issued:
+                    notify_tickets_issued(booking, issued)
+            except Exception as e:
+                current_app.logger.warning('Instant ticket notify: %s', e)
             return redirect(url_for('public.success', code=booking.booking_code))
-        flash('Your booking has been received. You will get a mail after approval.', 'success')
+
+        mail_ok = False
+        try:
+            from app.services.notify import send_booking_received_email
+            mail_ok = bool(send_booking_received_email(booking))
+        except Exception as e:
+            current_app.logger.warning('Booking received mail: %s', e)
+        if mail_ok:
+            flash('Your booking has been received. Confirmation email sent.', 'success')
+        else:
+            flash(
+                'Your booking has been received. '
+                'Email could not be sent - keep your booking code safe.',
+                'info',
+            )
         return redirect(url_for('public.success', code=booking.booking_code))
 
     qr_image = SiteSetting.get('payment_qr_image', '')

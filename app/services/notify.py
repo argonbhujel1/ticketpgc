@@ -392,3 +392,88 @@ def send_booking_rejected_email(booking):
     except Exception as e:
         current_app.logger.warning('reject email failed: %s', e)
         return False
+
+
+def send_booking_received_email(booking):
+    """Email buyer immediately after they submit a booking (pending approval)."""
+    to = (booking.buyer_email or '').strip()
+    if not to:
+        current_app.logger.warning('No email for booking received: %s', booking.booking_code)
+        return False
+    cfg = _mail_cfg()
+    if not cfg.get('server') or not cfg.get('sender'):
+        current_app.logger.warning('MAIL not configured - booking received email skipped')
+        return False
+    if not cfg.get('username') or not cfg.get('password'):
+        current_app.logger.warning('MAIL credentials missing')
+        return False
+
+    match_name = booking.match.display_name if booking.match else 'Match'
+    class_name = booking.ticket_class.name if booking.ticket_class else 'Ticket'
+    qty = int(booking.quantity or 1)
+    amount = float(booking.total_amount or 0)
+    code = booking.booking_code
+    name = booking.buyer_name or 'Guest'
+
+    subject = f'Booking received - {code}'
+    nl = chr(10)
+    text = (
+        f'Dear {name},' + nl + nl
+        + 'Your booking has been received.' + nl + nl
+        + f'Booking code: {code}' + nl
+        + f'Match: {match_name}' + nl
+        + f'Ticket: {class_name} x {qty}' + nl
+        + f'Amount: Rs. {amount:.0f}' + nl
+        + 'Status: Pending admin approval' + nl + nl
+        + 'We will email your digital ticket (with QR) after payment is confirmed.' + nl
+        + 'You can check status anytime with your booking code and email.' + nl + nl
+        + '- Pathari Gold Cup' + nl
+    )
+
+    html = (
+        '<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;'
+        'background:#0a0e17;color:#f0f2f5;padding:24px">'
+        '<div style="max-width:520px;margin:0 auto;background:#121a2a;'
+        'border-radius:16px;padding:28px;border:1px solid #c9a227">'
+        '<h1 style="color:#ffd56a;font-size:1.25rem;margin:0 0 12px">Booking received</h1>'
+        f'<p>Dear <strong>{name}</strong>,</p>'
+        '<p>Your booking has been <strong style="color:#81c784">received</strong>.</p>'
+        '<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:0.95rem">'
+        f'<tr><td style="padding:8px 0;color:#8b93a7">Booking code</td>'
+        f'<td style="padding:8px 0;color:#ffd56a;font-weight:700">{code}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#8b93a7">Match</td>'
+        f'<td style="padding:8px 0">{match_name}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#8b93a7">Ticket</td>'
+        f'<td style="padding:8px 0">{class_name} x {qty}</td></tr>'
+        f'<tr><td style="padding:8px 0;color:#8b93a7">Amount</td>'
+        f'<td style="padding:8px 0">Rs. {amount:.0f}</td></tr>'
+        '<tr><td style="padding:8px 0;color:#8b93a7">Status</td>'
+        '<td style="padding:8px 0">Pending approval</td></tr>'
+        '</table>'
+        '<p style="color:#8b93a7;font-size:0.9rem">'
+        'After admin confirms payment, you will receive another email with your '
+        'digital ticket and QR code.</p>'
+        '<p style="color:#666;font-size:0.8rem;margin:24px 0 0">- Pathari Gold Cup</p>'
+        '</div></body></html>'
+    )
+
+    try:
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        import smtplib
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = cfg['sender']
+        msg['To'] = to
+        msg.attach(MIMEText(text, 'plain', 'utf-8'))
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
+        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=15) as s:
+            if cfg.get('use_tls'):
+                s.starttls()
+            s.login(cfg['username'], cfg['password'])
+            s.sendmail(cfg['sender'], [to], msg.as_string())
+        current_app.logger.info('Booking received email sent to %s for %s', to, code)
+        return True
+    except Exception as e:
+        current_app.logger.warning('Booking received email failed: %s', e)
+        return False
