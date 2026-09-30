@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db, csrf
@@ -45,7 +46,7 @@ def check():
         return jsonify({'ok': False, 'status': 'cancelled', 'message': 'Ticket cancelled', 'code': code})
 
     ticket.status = 'used'
-    ticket.checked_in_at = datetime.now(timezone.utc)
+    ticket.checked_in_at = now_nepal_naive()
     ticket.checked_in_by = current_user.username if current_user.is_authenticated else 'scanner'
     db.session.commit()
 

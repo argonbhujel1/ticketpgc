@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from decimal import Decimal
 from flask import (
     Blueprint, render_template, request, redirect, url_for, flash,
@@ -188,7 +189,7 @@ def payment():
         auto_pay = method == 'demo'
         if auto_pay:
             booking.payment_status = 'paid'
-            booking.paid_at = datetime.now(timezone.utc)
+            booking.paid_at = now_nepal_naive()
             if not booking.payment_ref:
                 booking.payment_ref = f'DEMO-{secrets.token_hex(4).upper()}'
 

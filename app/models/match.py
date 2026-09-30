@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from app.extensions import db
 
 
@@ -14,7 +15,7 @@ class Match(db.Model):
     status = db.Column(db.String(20), default='upcoming')  # upcoming, live, completed, cancelled
     is_featured = db.Column(db.Boolean, default=False)
     poster = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: now_nepal_naive())
 
     home_team = db.relationship('Team', foreign_keys=[home_team_id])
     away_team = db.relationship('Team', foreign_keys=[away_team_id])

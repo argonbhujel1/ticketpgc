@@ -13,8 +13,8 @@
   <tr><th>Reject reason</th><td style="color:#e57373">{{ booking.rejection_reason }}</td></tr>
   {% endif %}
   <tr><th>Txn / Ref</th><td>{{ booking.payment_ref or '—' }}</td></tr>
-  <tr><th>Created</th><td>{{ booking.created_at.strftime('%Y-%m-%d %H:%M') if booking.created_at else '' }}</td></tr>
-  <tr><th>Paid at</th><td>{{ booking.paid_at.strftime('%Y-%m-%d %H:%M') if booking.paid_at else '—' }}</td></tr>
+  <tr><th>Created</th><td>{{ booking.created_at|np if booking.created_at else '' }}</td></tr>
+  <tr><th>Paid at</th><td>{{ booking.paid_at|np if booking.paid_at else '—' }}</td></tr>
 </table>
 
 <h3 style="margin:20px 0 10px;color:var(--gold)">Payment proof</h3>

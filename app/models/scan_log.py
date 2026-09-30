@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from app.extensions import db
 
 
@@ -10,4 +11,4 @@ class ScanLog(db.Model):
     result = db.Column(db.String(20), nullable=False)  # entered, rejected
     reason = db.Column(db.String(120))
     gate_user = db.Column(db.String(80))
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: now_nepal_naive())

@@ -19,7 +19,7 @@
     <td>{{ b.buyer_name }}</td>
     <td>Rs. {{ '%.0f'|format(b.total_amount|float) }}</td>
     <td>{{ b.payment_status }}</td>
-    <td>{{ b.created_at.strftime('%Y-%m-%d %H:%M') if b.created_at else '' }}</td>
+    <td>{{ b.created_at|np if b.created_at else '' }}</td>
   </tr>
   {% endfor %}
 </table>

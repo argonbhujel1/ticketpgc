@@ -57,6 +57,21 @@ def create_app(config_name=None):
     login_manager.init_app(app)
     csrf.init_app(app)
 
+    # Nepal time filters for all templates
+    from app.utils.timeutil import format_nepal, format_nepal_local, now_nepal
+
+    @app.template_filter('np')
+    def jinja_np(dt, fmt='%Y-%m-%d %H:%M'):
+        """UTC/aware → Nepal time string."""
+        return format_nepal(dt, fmt)
+
+    @app.template_filter('np_local')
+    def jinja_np_local(dt, fmt='%d %b %Y · %I:%M %p'):
+        """Match/event wall clock in Nepal (no shift)."""
+        return format_nepal_local(dt, fmt)
+
+    app.jinja_env.globals['now_nepal'] = now_nepal
+
     from app.routes.public import public_bp
     from app.routes.admin import admin_bp
     from app.routes.scanner import scanner_bp

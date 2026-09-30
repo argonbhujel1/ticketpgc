@@ -233,15 +233,16 @@
     }
     if (d.status === 'used') {
       let timeStr = '';
-      if (d.checked_in_at) {
+      if (d.checked_in_at_display) {
+        timeStr = String(d.checked_in_at_display).replace(/:/g, ' ');
+      } else if (d.checked_in_at) {
         try {
-          const dt = new Date(d.checked_in_at);
-          let h = dt.getHours();
-          const m = dt.getMinutes();
-          const s = dt.getSeconds();
+          const parts = String(d.checked_in_at).replace('T', ' ').split(/[\s:]/);
+          let h = parseInt(parts[1], 10);
+          const m = parts[2], s = parts[3] || '00';
           const ampm = h >= 12 ? 'P M' : 'A M';
           h = h % 12; if (h === 0) h = 12;
-          timeStr = h + ' ' + String(m).padStart(2,'0') + ' ' + String(s).padStart(2,'0') + ' ' + ampm;
+          timeStr = h + ' ' + m + ' ' + s + ' ' + ampm;
         } catch (e) {}
       }
       if (timeStr) {

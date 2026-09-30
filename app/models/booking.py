@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from app.extensions import db
 import secrets
 
@@ -21,7 +22,7 @@ class Booking(db.Model):
     payment_proof = db.Column(db.String(255))  # uploads/proofs/...
     notes = db.Column(db.Text)
     rejection_reason = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: now_nepal_naive())
     paid_at = db.Column(db.DateTime)
     rejected_at = db.Column(db.DateTime)
 
@@ -31,7 +32,7 @@ class Booking(db.Model):
 
     @staticmethod
     def generate_code():
-        year = datetime.now().year
+        year = now_nepal_naive().year
         return f'PGC-BOOK-{year}-{secrets.token_hex(3).upper()}'
 
 
@@ -47,14 +48,14 @@ class Ticket(db.Model):
     checked_in_at = db.Column(db.DateTime)
     checked_in_by = db.Column(db.String(80))
     qr_payload = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: now_nepal_naive())
 
     match = db.relationship('Match')
     ticket_class = db.relationship('TicketClass')
 
     @staticmethod
     def generate_code(seq=None):
-        year = datetime.now().year
+        year = now_nepal_naive().year
         if seq is not None:
             return f'PGC-TKT-{year}-{seq:06d}'
         return f'PGC-TKT-{year}-{secrets.token_hex(3).upper()}'

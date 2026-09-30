@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from app.extensions import db
 
 
@@ -11,7 +12,7 @@ class Team(db.Model):
     primary_color = db.Column(db.String(20), default='#1a237e')
     secondary_color = db.Column(db.String(20), default='#ffffff')
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: now_nepal_naive())
 
     def __repr__(self):
         return f'<Team {self.name}>'

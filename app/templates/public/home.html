@@ -54,8 +54,8 @@
           </div>
         </div>
         <div class="meta">
-          <div>📅 {{ m.match_date.strftime('%d %b %Y') if m.match_date else '—' }}</div>
-          <div>🕐 {{ m.match_date.strftime('%I:%M %p') if m.match_date else '—' }}</div>
+          <div>📅 {{ m.match_date|np_local('%d %b %Y') if m.match_date else '—' }}</div>
+          <div>🕐 {{ m.match_date|np_local('%I:%M %p') if m.match_date else '—' }}</div>
           <div>📍 {{ m.venue or 'Pathari Rangashala' }}</div>
         </div>
         <div class="countdown countdown-sm js-countdown" data-target="{{ m.match_date.isoformat() if m.match_date else '' }}">

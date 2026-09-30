@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from decimal import Decimal
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
@@ -377,7 +378,7 @@ def booking_confirm(id):
     booking = Booking.query.get_or_404(id)
     if booking.payment_status != 'paid':
         booking.payment_status = 'paid'
-        booking.paid_at = datetime.now(timezone.utc)
+        booking.paid_at = now_nepal_naive()
         booking.payment_ref = booking.payment_ref or request.form.get('payment_ref') or 'MANUAL'
         existing = Ticket.query.filter_by(booking_id=booking.id).count()
         if existing == 0:
@@ -423,7 +424,7 @@ def booking_reject(id):
         return redirect(url_for('admin.booking_detail', id=booking.id))
     booking.payment_status = 'rejected'
     booking.rejection_reason = reason[:1000]
-    booking.rejected_at = datetime.now(timezone.utc)
+    booking.rejected_at = now_nepal_naive()
     # cancel any accidental tickets (should be none if not paid)
     for tk in Ticket.query.filter_by(booking_id=booking.id).all():
         tk.status = 'cancelled'

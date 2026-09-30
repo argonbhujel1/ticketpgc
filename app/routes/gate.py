@@ -1,5 +1,6 @@
 """Separate gate staff interface: /gate/login — not mixed with admin UI."""
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive, format_nepal
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app.extensions import db, csrf
@@ -84,7 +85,8 @@ def check():
         return jsonify({
             'ok': False, 'status': 'used', 'message': 'ALREADY USED',
             'code': ticket.ticket_code, 'holder': ticket.holder_name,
-            'checked_in_at': ticket.checked_in_at.isoformat() if ticket.checked_in_at else None,
+            'checked_in_at': format_nepal(ticket.checked_in_at, '%Y-%m-%dT%H:%M:%S') if ticket.checked_in_at else None,
+            'checked_in_at_display': format_nepal(ticket.checked_in_at, '%I:%M:%S %p') if ticket.checked_in_at else None,
             'match': ticket.match.display_name if ticket.match else '',
             'class': ticket.ticket_class.name if ticket.ticket_class else '',
             'entered': entered, 'rejected': rejected,
@@ -100,7 +102,7 @@ def check():
         })
 
     ticket.status = 'used'
-    ticket.checked_in_at = datetime.now(timezone.utc)
+    ticket.checked_in_at = now_nepal_naive()
     ticket.checked_in_by = gate_user
     db.session.add(ScanLog(ticket_code=code, result='entered', reason='ok', gate_user=gate_user))
     db.session.commit()
@@ -111,6 +113,7 @@ def check():
         'code': ticket.ticket_code, 'holder': ticket.holder_name,
         'match': ticket.match.display_name if ticket.match else '',
         'class': ticket.ticket_class.name if ticket.ticket_class else '',
-        'checked_in_at': ticket.checked_in_at.isoformat(),
+        'checked_in_at': format_nepal(ticket.checked_in_at, '%Y-%m-%dT%H:%M:%S'),
+        'checked_in_at_display': format_nepal(ticket.checked_in_at, '%I:%M:%S %p'),
         'entered': entered, 'rejected': rejected,
     })

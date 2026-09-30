@@ -7,7 +7,7 @@
       {{ ticket.match.display_name if ticket.match else '' }}
     </h1>
     <p style="color:var(--muted);font-size:0.9rem;margin-bottom:4px">
-      {% if ticket.match %}{{ ticket.match.match_date.strftime('%d %b %Y · %H:%M') }} · {{ ticket.match.venue }}{% endif %}
+      {% if ticket.match %}{{ ticket.match.match_date|np_local('%d %b %Y · %I:%M %p') }} · {{ ticket.match.venue }}{% endif %}
     </p>
 
     <!-- LARGE ticket - full width -->

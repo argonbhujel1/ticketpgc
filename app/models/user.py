@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app.extensions import db, login_manager
@@ -13,7 +14,7 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(120))
     role = db.Column(db.String(20), default='admin')  # admin, scanner, staff
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: now_nepal_naive())
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

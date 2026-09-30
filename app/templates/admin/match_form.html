@@ -20,7 +20,7 @@
   </select>
   <label>Date & Time</label>
   <input type="datetime-local" name="match_date" required
-    value="{% if match %}{{ match.match_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+    value="{% if match %}{{ match.match_date|np_local('%Y-%m-%dT%H:%M') }}{% endif %}">
   <label>Venue</label>
   <input name="venue" value="{{ match.venue if match else 'Pathari, Morang' }}">
   <label>Venue detail</label>

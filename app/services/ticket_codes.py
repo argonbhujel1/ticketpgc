@@ -2,6 +2,7 @@
 """Allocate and recycle ticket codes."""
 from __future__ import annotations
 from datetime import datetime, timezone
+from app.utils.timeutil import now_nepal_naive
 from app.extensions import db
 from app.models.booking import Ticket
 from app.models.ticket_code_pool import TicketCodePool
@@ -63,5 +64,5 @@ def recycle_ticket_code(code, holder=None, email=None):
         ticket_code=code,
         previous_holder=holder,
         previous_email=email,
-        freed_at=datetime.now(timezone.utc),
+        freed_at=now_nepal_naive(),
     ))

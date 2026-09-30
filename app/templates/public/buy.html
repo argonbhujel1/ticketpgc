@@ -7,7 +7,7 @@
       <span class="on">1 Match</span><span>2 Details</span><span>3 Payment</span><span>4 Ticket</span>
     </div>
     <h1 class="section-title">{{ match.display_name }}</h1>
-    <p class="meta" style="margin-bottom:20px">📅 {{ match.match_date.strftime('%d %b %Y · %I:%M %p') }} · 📍 {{ match.venue }}</p>
+    <p class="meta" style="margin-bottom:20px">📅 {{ match.match_date|np_local('%d %b %Y · %I:%M %p') }} · 📍 {{ match.venue }}</p>
 
     <form method="post" class="form-card" style="max-width:520px">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
