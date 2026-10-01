@@ -190,7 +190,11 @@
     <h1>GATE SCANNER</h1>
   </div>
   <p class="user-line">
-    {{ current_user.username }} · <a href="{{ url_for('gate.logout') }}">Logout</a>
+    {{ gate_label or current_user.display_name or current_user.username }}
+    {% if current_user.role == 'admin' %}
+    · <a href="{{ url_for('gate.register_staff') }}">+ Staff</a>
+    {% endif %}
+    · <a href="{{ url_for('gate.logout') }}">Logout</a>
   </p>
 
   <div class="stats">

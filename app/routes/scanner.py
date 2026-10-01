@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from app.utils.timeutil import now_nepal_naive
-from flask import Blueprint, render_template, request, jsonify
+from flask import current_app, Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db, csrf
 from app.models.booking import Ticket
@@ -47,8 +47,15 @@ def check():
 
     ticket.status = 'used'
     ticket.checked_in_at = now_nepal_naive()
+    # email after commit below
     ticket.checked_in_by = current_user.username if current_user.is_authenticated else 'scanner'
     db.session.commit()
+
+    try:
+        from app.services.notify import send_ticket_used_email
+        send_ticket_used_email(ticket)
+    except Exception as e:
+        current_app.logger.warning('ticket used email: %s', e)
 
     return jsonify({
         'ok': True,

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Staff Created</title>
+  <style>
+    :root { --gold:#c9a227; --bg:#070b14; --card:#0d1526; --muted:#8b93a7; }
+    body {
+      margin:0; min-height:100dvh; font-family:system-ui,sans-serif;
+      background:var(--bg); color:#f0f2f5; display:flex; align-items:center; justify-content:center;
+      padding:20px;
+    }
+    .card {
+      width:100%; max-width:420px; background:var(--card); border:1px solid rgba(201,162,39,0.4);
+      border-radius:18px; padding:28px 22px;
+    }
+    h1 { color:var(--gold); font-size:1.15rem; margin:0 0 12px; text-align:center; }
+    .msg { color:#a5d6a7; text-align:center; line-height:1.55; margin-bottom:18px; font-size:0.95rem; }
+    .box { background:#121a2a; border-radius:12px; padding:14px 16px; margin:12px 0; font-size:0.95rem; }
+    .box div { margin:8px 0; }
+    .k { color:var(--muted); font-size:0.75rem; }
+    .v { color:#ffd56a; font-weight:700; word-break:break-all; }
+    a.btn {
+      display:block; text-align:center; margin-top:16px; padding:12px; border-radius:999px;
+      background:var(--gold); color:#111; font-weight:800; text-decoration:none;
+    }
+    .note { color:var(--muted); font-size:0.8rem; text-align:center; margin-top:14px; line-height:1.45; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Staff account created</h1>
+    <p class="msg">
+      {% if mail_ok %}
+      इमेलमा username र password पठाइएको छ।<br>
+      <strong>त्यही user/password ले login गरेर आफ्नो काम गर्नुहोला।</strong>
+      {% else %}
+      इमेल पठाउन सकिएन — तलको password सुरक्षित नोट गर्नुहोस्।
+      {% endif %}
+    </p>
+    <div class="box">
+      <div><div class="k">Display name</div><div class="v">{{ staff.display_name }}</div></div>
+      <div><div class="k">Documented name</div><div class="v">{{ staff.documented_name }}</div></div>
+      <div><div class="k">Email</div><div class="v">{{ staff.email }}</div></div>
+      <div><div class="k">Username</div><div class="v">{{ staff.username }}</div></div>
+      <div><div class="k">Password (permanent / forever)</div><div class="v">{{ plain_password }}</div></div>
+    </div>
+    <a class="btn" href="{{ url_for('gate.register_staff') }}">Register another staff</a>
+    <a class="btn" href="{{ url_for('gate.logout') }}" style="background:transparent;border:1px solid var(--gold);color:var(--gold);margin-top:10px">Logout · Staff login</a>
+    <p class="note">Staff ले /gate/login मा यो username र password ले प्रवेश गर्नुहोस्। Password सधैंका लागि हो।</p>
+  </div>
+</body>
+</html>

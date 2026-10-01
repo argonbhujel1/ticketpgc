@@ -12,8 +12,12 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120))
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(120))
+    display_name = db.Column(db.String(120))  # shown on gate / emails
+    documented_name = db.Column(db.String(120))  # official/document name
     role = db.Column(db.String(20), default='admin')  # admin, scanner, staff
     is_active = db.Column(db.Boolean, default=True)
+    must_change_password = db.Column(db.Boolean, default=False)
+
     created_at = db.Column(db.DateTime, default=lambda: now_nepal_naive())
 
     def set_password(self, password):

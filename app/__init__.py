@@ -16,6 +16,9 @@ def _ensure_schema(app):
         "ALTER TABLE highlights ALTER COLUMN youtube_id SET DEFAULT ''",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS rejection_reason TEXT",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMP WITHOUT TIME ZONE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(120)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS documented_name VARCHAR(120)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE",
     ]
     with db.engine.begin() as conn:
         for s in stmts:

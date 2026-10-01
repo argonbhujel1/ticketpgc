@@ -538,3 +538,114 @@ def send_booking_received_email(booking):
     if ok:
         current_app.logger.info('Booking received email sent to %s for %s', to, code)
     return ok
+
+
+def send_ticket_used_email(ticket):
+    """Notify buyer when ticket is scanned/used at the gate."""
+    booking = ticket.booking
+    to = ''
+    if booking and booking.buyer_email:
+        to = (booking.buyer_email or '').strip()
+    if not to:
+        current_app.logger.info('No email for used ticket %s', ticket.ticket_code)
+        return False
+
+    name = ticket.holder_name or (booking.buyer_name if booking else 'Guest') or 'Guest'
+    code = ticket.ticket_code
+    match_name = ticket.match.display_name if ticket.match else 'Match'
+    class_name = ticket.ticket_class.name if ticket.ticket_class else 'Ticket'
+    when = ''
+    try:
+        from app.utils.timeutil import format_nepal
+        when = format_nepal(ticket.checked_in_at, '%d %b %Y | %I:%M:%S %p NPT') if ticket.checked_in_at else _nepal_stamp()
+    except Exception:
+        when = _nepal_stamp()
+    gate_by = ticket.checked_in_by or 'Gate'
+
+    subject = f'Ticket used - {code}'
+    nl = chr(10)
+    text_body = (
+        'PATHARI SANISCHARE GOLD CUP' + nl
+        + f'Time: {when}' + nl + nl
+        + f'Dear {name},' + nl + nl
+        + 'Your ticket has been used at the gate.' + nl + nl
+        + f'Ticket ID: {code}' + nl
+        + f'Match: {match_name}' + nl
+        + f'Class: {class_name}' + nl
+        + f'Checked in: {when}' + nl
+        + f'Gate staff: {gate_by}' + nl + nl
+        + 'This ticket is now invalid for re-entry (single use).' + nl + nl
+        + 'This is an auto-generated email. Please do not reply.' + nl + nl
+        + '- Pathari Sanischare Gold Cup' + nl
+    )
+    inner = (
+        f'<p style="margin:0 0 14px">Dear <strong>{name}</strong>,</p>'
+        f'<p style="margin:0 0 18px">Your ticket has been '
+        f'<strong style="color:#81c784">used at the gate</strong>.</p>'
+        f'<table width="100%" cellspacing="0" cellpadding="0" style="background:#121a2a;border-radius:12px;border:1px solid #243044;">'
+        f'<tr><td style="padding:14px 16px;color:#8b93a7;font-size:13px">Ticket ID</td>'
+        f'<td style="padding:14px 16px;color:#ffd56a;font-weight:bold;font-size:15px">{code}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Match</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044">{match_name}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Class</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044">{class_name}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Checked in</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044;color:#81c784">{when}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Gate</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044">{gate_by}</td></tr>'
+        f'</table>'
+        f'<p style="margin:18px 0 0;color:#8b93a7;font-size:13px">'
+        f'This ticket is now <strong>invalid for re-entry</strong> (single use only).</p>'
+    )
+    html_body = _email_shell('Ticket used at gate', inner, badge_text='ENTRY RECORDED')
+    ok = _send_html_mail(to, subject, text_body, html_body)
+    if ok:
+        current_app.logger.info('Ticket used email sent to %s for %s', to, code)
+    return ok
+
+
+def send_gate_staff_credentials_email(user, plain_password):
+    """Email new gate staff their permanent login (Nepali + English)."""
+    to = (user.email or '').strip()
+    if not to:
+        return False
+    name = user.display_name or user.full_name or user.username
+    doc = user.documented_name or name
+    username = user.username
+    stamp = _nepal_stamp()
+    subject = f'Gate staff login - {username}'
+    nl = chr(10)
+    text_body = (
+        'PATHARI SANISCHARE GOLD CUP - Gate Staff' + nl
+        + f'Time: {stamp}' + nl + nl
+        + f'Namaste {name},' + nl + nl
+        + 'Tapai ko gate staff account tayar bhayo.' + nl
+        + 'Yo username ra password le login garera aafno kam garnu hola.' + nl + nl
+        + f'Display name: {name}' + nl
+        + f'Documented name: {doc}' + nl
+        + f'Username: {username}' + nl
+        + f'Password: {plain_password}' + nl + nl
+        + 'Yo password permanent ho (forever). Safe rakhnu hola.' + nl
+        + 'Gate login: /gate/login' + nl + nl
+        + 'This is an auto-generated email. Please do not reply.' + nl
+    )
+    inner = (
+        f'<p style="margin:0 0 12px">नमस्ते <strong>{name}</strong>,</p>'
+        f'<p style="margin:0 0 16px">तपाईंको <strong style="color:#81c784">gate staff</strong> खाता तयार भयो।</p>'
+        f'<p style="margin:0 0 16px;color:#ffd56a">यो username र password ले login गरेर आफ्नो काम गर्नुहोला।</p>'
+        f'<table width="100%" cellspacing="0" cellpadding="0" style="background:#121a2a;border-radius:12px;border:1px solid #243044;">'
+        f'<tr><td style="padding:12px 16px;color:#8b93a7;font-size:13px">Display name</td>'
+        f'<td style="padding:12px 16px;color:#ffd56a;font-weight:bold">{name}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Documented name</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044">{doc}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Username</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044;font-weight:bold">{username}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Password</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044;font-weight:bold;color:#81c784">{plain_password}</td></tr>'
+        f'</table>'
+        f'<p style="margin:16px 0 0;color:#8b93a7;font-size:13px">'
+        f'यो password <strong>permanent (forever)</strong> हो। सुरक्षित राख्नुहोला। Gate: <code>/gate/login</code></p>'
+        f'<p style="margin:12px 0 0;color:#8b93a7;font-size:13px">English: Please login with the username and password above to start your gate duty.</p>'
+    )
+    html_body = _email_shell('Gate staff account ready', inner, badge_text='STAFF LOGIN')
+    return _send_html_mail(to, subject, text_body, html_body)
