@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -45,25 +45,9 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SportsEvent",
-    "name": "Pathari Sanischare Gold Cup {{ site_year }}",
-    "description": "Official football tournament at Pathari Rangashala, Jate Mode, Morang, Nepal.",
-    "url": "{{ request.url_root }}",
-    "image": "{{ url_for('static', filename='images/bg.png', _external=True) }}",
-    "location": {
-      "@type": "Place",
-      "name": "Pathari Rangashala",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Pathari",
-        "addressRegion": "Morang",
-        "addressCountry": "NP"
-      }
-    },
-    "organizer": {
-      "@type": "SportsOrganization",
-      "name": "Pathari-11 Football Club"
-    }
+    "@type": "WebSite",
+    "name": {{ site_name|tojson }},
+    "url": "{{ request.url_root }}"
   }
   </script>
 </head>
@@ -171,4 +155,5 @@
   {% block scripts %}{% endblock %}
 </body>
 </html>
+
 

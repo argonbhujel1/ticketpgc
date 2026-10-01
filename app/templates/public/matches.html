@@ -1,52 +1,147 @@
-{% extends "public/base.html" %}
+﻿{% extends "public/base.html" %}
 {% block title %}Matches · {{ site_name }}{% endblock %}
+
 {% block content %}
 <section class="section">
   <div class="container">
+
     <h1 class="section-title">All Matches</h1>
+
     <div class="match-grid">
+
       {% for m in matches %}
+
       <article class="match-card">
-        <div class="league">{{ m.title or 'Pathari Gold Cup' }}</div>
+
+        <div class="league">
+          {{ m.title or 'Pathari Gold Cup' }}
+        </div>
+
         <div class="teams">
+
           <div class="team">
+
             {% if m.home_team and m.home_team.logo %}
-            <div class="crest crest-img"><img src="{{ media_url(m.home_team.logo) }}" alt=""></div>
+            <div class="crest crest-img">
+              <img
+                src="{{ media_url(m.home_team.logo) }}"
+                alt="{{ m.home_team.name }} logo">
+            </div>
             {% else %}
-            <div class="crest">{{ (m.home_team.short_name or m.home_team.name)[:2]|upper }}</div>
+            <div class="crest">
+              {{ (m.home_team.short_name or m.home_team.name)[:2]|upper }}
+            </div>
             {% endif %}
-            <div class="name">{{ m.home_team.short_name or m.home_team.name }}</div>
+
+            <div class="name">
+              {{ m.home_team.short_name or m.home_team.name }}
+            </div>
+
           </div>
+
           <div class="vs">VS</div>
+
           <div class="team">
+
             {% if m.away_team and m.away_team.logo %}
-            <div class="crest crest-img"><img src="{{ media_url(m.away_team.logo) }}" alt=""></div>
+            <div class="crest crest-img">
+              <img
+                src="{{ media_url(m.away_team.logo) }}"
+                alt="{{ m.away_team.name }} logo">
+            </div>
             {% else %}
-            <div class="crest" style="background:linear-gradient(145deg,#b71c1c,#7f0000)">{{ (m.away_team.short_name or m.away_team.name)[:2]|upper }}</div>
+            <div class="crest">
+              {{ (m.away_team.short_name or m.away_team.name)[:2]|upper }}
+            </div>
             {% endif %}
-            <div class="name">{{ m.away_team.short_name or m.away_team.name }}</div>
+
+            <div class="name">
+              {{ m.away_team.short_name or m.away_team.name }}
+            </div>
+
           </div>
+
         </div>
+
         <div class="meta">
-          <div>📅 {{ m.match_date|np_local('%d %b %Y') if m.match_date else '—' }}</div>
-          <div>🕐 {{ m.match_date|np_local('%I:%M %p') if m.match_date else '—' }}</div>
-          <div>📍 {{ m.venue or 'Pathari Rangashala' }}</div>
+
+          <div>
+            📅
+            {{ m.match_date|np_local('%d %b %Y') if m.match_date else '—' }}
+          </div>
+
+          <div>
+            🕐
+            {{ m.match_date|np_local('%I:%M %p') if m.match_date else '—' }}
+          </div>
+
+          <div>
+            📍
+            {{ m.venue or 'Pathari Rangashala' }}
+          </div>
+
         </div>
-        <div class="countdown countdown-sm js-countdown" data-target="{{ m.match_date.isoformat() if m.match_date else '' }}">
-          <div class="unit"><strong data-d>--</strong><span>D</span></div>
-          <div class="unit"><strong data-h>--</strong><span>H</span></div>
-          <div class="unit"><strong data-m>--</strong><span>M</span></div>
-          <div class="unit"><strong data-s>--</strong><span>S</span></div>
+
+        {% if m.match_date %}
+        <div
+          class="countdown countdown-sm js-countdown"
+          data-target="{{ m.match_date.isoformat() }}">
+
+          <div class="unit">
+            <strong data-d>--</strong>
+            <span>D</span>
+          </div>
+
+          <div class="unit">
+            <strong data-h>--</strong>
+            <span>H</span>
+          </div>
+
+          <div class="unit">
+            <strong data-m>--</strong>
+            <span>M</span>
+          </div>
+
+          <div class="unit">
+            <strong data-s>--</strong>
+            <span>S</span>
+          </div>
+
         </div>
-        <a class="btn btn-gold btn-block" href="{{ url_for('public.buy', match_id=m.id) }}">BUY TICKET</a>
+        {% endif %}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+
+          <a
+            class="btn btn-outline btn-block"
+            href="{{ url_for('public.match_detail', id=m.id) }}">
+            MATCH DETAILS
+          </a>
+
+          <a
+            class="btn btn-gold btn-block"
+            href="{{ url_for('public.buy', match_id=m.id) }}">
+            BUY TICKET
+          </a>
+
+        </div>
+
       </article>
+
       {% else %}
-      <p style="color:var(--muted)">No matches scheduled.</p>
+
+      <p style="color:var(--muted)">
+        No matches scheduled.
+      </p>
+
       {% endfor %}
+
     </div>
+
   </div>
 </section>
 {% endblock %}
+
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/countdown.js') }}"></script>
 {% endblock %}
