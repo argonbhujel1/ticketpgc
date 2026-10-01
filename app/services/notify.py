@@ -34,6 +34,122 @@ def _mail_cfg():
     }
 
 
+
+def _load_logo_bytes():
+    try:
+        from app.models.settings import SiteSetting
+        from app.services.uploads import resolve_media_path
+        rel = SiteSetting.get('site_logo', '') or ''
+        path = resolve_media_path(rel) if rel else None
+        if not path:
+            static = Path(current_app.static_folder)
+            for name in ('images/logo.jpg', 'images/logo.png', 'images/icon-180.png'):
+                cand = static / name
+                if cand.is_file():
+                    path = str(cand)
+                    break
+        if not path:
+            return None
+        if str(path).startswith('http'):
+            import urllib.request
+            req = urllib.request.Request(path, headers={'User-Agent': 'PGC-Mail/1.0'})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return resp.read(), 'png' if 'png' in path.lower() else 'jpeg'
+        data = Path(path).read_bytes()
+        ext = 'png' if path.lower().endswith('.png') else 'jpeg'
+        return data, ext
+    except Exception as e:
+        current_app.logger.debug('logo load: %s', e)
+        return None
+
+
+def _nepal_stamp():
+    from app.utils.timeutil import format_nepal, now_nepal
+    return format_nepal(now_nepal(), '%d %b %Y | %I:%M:%S %p NPT')
+
+
+def _email_shell(title, inner_html, badge_text='OFFICIAL'):
+    stamp = _nepal_stamp()
+    return (
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+        '<body style="margin:0;padding:0;background:#070b14;font-family:Arial,Helvetica,sans-serif;">'
+        '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#070b14;padding:24px 12px;">'
+        '<tr><td align="center">'
+        '<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#0d1526;border-radius:16px;border:1px solid #c9a227;overflow:hidden;">'
+        '<tr><td style="background:#1a1408;padding:20px 24px;text-align:center;border-bottom:2px solid #c9a227;">'
+        '<img src="cid:site-logo" alt="Logo" width="72" height="72" '
+        'style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #c9a227;background:#fff;">'
+        '<div style="margin-top:10px;color:#ffd56a;font-size:18px;font-weight:bold;">Pathari Sanischare Gold Cup</div>'
+        '<div style="color:#8b93a7;font-size:12px;margin-top:4px;">Official Ticketing System</div>'
+        '</td></tr>'
+        '<tr><td style="padding:12px 24px;background:#121a2a;">'
+        '<table width="100%" cellspacing="0" cellpadding="0"><tr>'
+        f'<td><span style="display:inline-block;padding:4px 12px;border:1px solid #c9a227;border-radius:999px;color:#ffd56a;font-size:11px;font-weight:bold;letter-spacing:0.06em;">{badge_text}</span></td>'
+        f'<td align="right" style="color:#8b93a7;font-size:11px;">{stamp}</td>'
+        '</tr></table></td></tr>'
+        '<tr><td style="padding:24px;color:#f0f2f5;font-size:15px;line-height:1.55;">'
+        f'<h1 style="margin:0 0 16px;color:#ffd56a;font-size:20px;">{title}</h1>'
+        f'{inner_html}'
+        '</td></tr>'
+        '<tr><td style="padding:16px 24px 24px;border-top:1px solid #243044;text-align:center;">'
+        '<p style="margin:0 0 8px;color:#8b93a7;font-size:12px;line-height:1.5;">'
+        'This is an <strong style="color:#c9a227;">auto-generated</strong> email from Pathari Sanischare Gold Cup.<br>'
+        'Please <strong>do not reply</strong> to this message.</p>'
+        '<p style="margin:0;color:#555;font-size:11px;">&copy; Pathari Sanischare Gold Cup</p>'
+        '</td></tr></table></td></tr></table></body></html>'
+    )
+
+
+def _attach_logo(related_part):
+    logo = _load_logo_bytes()
+    if not logo:
+        return
+    data, ext = logo
+    img = MIMEImage(data, _subtype='png' if ext == 'png' else 'jpeg')
+    img.add_header('Content-ID', '<site-logo>')
+    img.add_header('Content-Disposition', 'inline', filename='logo.' + ('png' if ext == 'png' else 'jpg'))
+    related_part.attach(img)
+
+
+def _send_html_mail(to, subject, text_body, html_body, extra_related_attachments=None, file_attachments=None):
+    cfg = _mail_cfg()
+    if not cfg.get('server') or not cfg.get('sender'):
+        return False
+    if not cfg.get('username') or not cfg.get('password'):
+        current_app.logger.warning('MAIL credentials missing')
+        return False
+    msg = MIMEMultipart('mixed')
+    msg['Subject'] = subject
+    msg['From'] = formataddr((OFFICIAL_FROM_NAME, cfg['sender']))
+    msg['To'] = to
+    msg['X-Auto-Response-Suppress'] = 'All'
+    msg['Auto-Submitted'] = 'auto-generated'
+    msg['Precedence'] = 'bulk'
+    related = MIMEMultipart('related')
+    alt = MIMEMultipart('alternative')
+    alt.attach(MIMEText(text_body, 'plain', 'utf-8'))
+    alt.attach(MIMEText(html_body, 'html', 'utf-8'))
+    related.attach(alt)
+    _attach_logo(related)
+    if extra_related_attachments:
+        for item in extra_related_attachments:
+            related.attach(item)
+    msg.attach(related)
+    if file_attachments:
+        for att in file_attachments:
+            msg.attach(att)
+    try:
+        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=20) as s:
+            if cfg.get('use_tls'):
+                s.starttls()
+            s.login(cfg['username'], cfg['password'])
+            s.sendmail(cfg['sender'], [to], msg.as_string())
+        return True
+    except Exception as e:
+        current_app.logger.warning('Email send failed: %s', e)
+        return False
+
 def _build_ticket_pngs(tickets):
     from app.services.ticket_image import generate_ticket_png
     from app.models.settings import SiteSetting
@@ -102,10 +218,12 @@ def send_ticket_email(booking, tickets):
     codes = [t.ticket_code for t in tickets] if tickets else []
     ticket_id_line = ', '.join(codes) if codes else booking.booking_code
 
+    stamp = _nepal_stamp()
     subject = f'Your Ticket — Pathari Sanischare Gold Cup ({booking.booking_code})'
 
     text_body = f"""PATHARI SANISCHARE GOLD CUP
 Official Ticketing System
+Time: {stamp}
 
 Hello {booking.buyer_name},
 
@@ -147,58 +265,31 @@ Official Ticketing System
         ''')
     tickets_html = '\n'.join(ticket_blocks) if ticket_blocks else '<p>Ticket details above.</p>'
 
-    html_body = f"""
-<!DOCTYPE html>
-<html><body style="font-family:Arial,Helvetica,sans-serif;color:#111;line-height:1.5;
-  max-width:640px;margin:0 auto;padding:16px;background:#0a0a0c">
-  <div style="background:#141018;border-radius:16px;padding:20px;border:1px solid #c9a227">
-    <div style="text-align:center;border-bottom:2px solid #c9a227;padding-bottom:12px;margin-bottom:16px">
-      <div style="font-size:18px;font-weight:bold;color:#c9a227;letter-spacing:0.04em">
-        PATHARI SANISCHARE GOLD CUP
-      </div>
-      <div style="font-size:13px;color:#aaa">Official Ticketing System</div>
-    </div>
-
-    <p style="color:#f0f0f0">Hello <b style="color:#ffd54f">{booking.buyer_name}</b>,</p>
-    <p style="color:#ccc">Your ticket has been successfully created.</p>
-
-    <div style="background:#1a1218;border:1px solid #c9a22755;border-radius:8px;padding:16px;margin:16px 0">
-      <div style="font-size:12px;color:#c9a227;font-weight:bold;letter-spacing:0.08em;margin-bottom:10px">
-        TICKET DETAILS
-      </div>
-      <table style="width:100%;font-size:14px;border-collapse:collapse;color:#eee">
-        <tr><td style="padding:4px 0;color:#888;width:38%">Ticket ID</td>
-            <td style="padding:4px 0"><b>{ticket_id_line}</b></td></tr>
-        <tr><td style="padding:4px 0;color:#888">Name</td>
-            <td style="padding:4px 0">{booking.buyer_name}</td></tr>
-        <tr><td style="padding:4px 0;color:#888">Mobile</td>
-            <td style="padding:4px 0">{booking.buyer_phone or '—'}</td></tr>
-        <tr><td style="padding:4px 0;color:#888">Ticket Type</td>
-            <td style="padding:4px 0">{ticket_type}</td></tr>
-        <tr><td style="padding:4px 0;color:#888">Quantity</td>
-            <td style="padding:4px 0">{qty}</td></tr>
-        <tr><td style="padding:4px 0;color:#888">Amount</td>
-            <td style="padding:4px 0"><b>NPR {amount:.0f}</b></td></tr>
-        <tr><td style="padding:4px 0;color:#888">Status</td>
-            <td style="padding:4px 0;color:#81c784"><b>Confirmed</b></td></tr>
-      </table>
-    </div>
-
-    <p style="color:#c9a227;font-weight:bold;text-align:center;margin:20px 0 8px">YOUR OFFICIAL TICKET</p>
+    inner = f"""
+    <p style="margin:0 0 12px">Hello <strong>{booking.buyer_name}</strong>,</p>
+    <p style="margin:0 0 16px">Your ticket has been
+      <strong style="color:#81c784">successfully issued</strong>.</p>
+    <table width="100%" cellspacing="0" cellpadding="0" style="background:#121a2a;border-radius:12px;border:1px solid #243044;margin-bottom:18px">
+      <tr><td style="padding:12px 16px;color:#8b93a7;font-size:13px">Ticket ID</td>
+          <td style="padding:12px 16px;color:#ffd56a;font-weight:bold">{ticket_id_line}</td></tr>
+      <tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Name</td>
+          <td style="padding:10px 16px;border-top:1px solid #243044">{booking.buyer_name}</td></tr>
+      <tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Mobile</td>
+          <td style="padding:10px 16px;border-top:1px solid #243044">{booking.buyer_phone or '-'}</td></tr>
+      <tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Type</td>
+          <td style="padding:10px 16px;border-top:1px solid #243044">{ticket_type}</td></tr>
+      <tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Qty / Amount</td>
+          <td style="padding:10px 16px;border-top:1px solid #243044">{qty} | NPR {amount:.0f}</td></tr>
+      <tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Booking</td>
+          <td style="padding:10px 16px;border-top:1px solid #243044">{booking.booking_code}</td></tr>
+    </table>
     {tickets_html}
-
-    <p style="color:#aaa;font-size:13px;margin-top:20px">
-      Present the QR at the gate. One ticket = one entry.<br>
-      <b style="color:#e57373">This is an automated message — please do not reply.</b>
+    <p style="margin:16px 0 0;color:#8b93a7;font-size:13px">
+      Present the QR at the gate. Single use only.
     </p>
+    """
+    html_body = _email_shell('Your official ticket', inner, badge_text='TICKET ISSUED')
 
-    <p style="margin-top:24px;color:#eee">Regards,<br>
-      <b style="color:#c9a227">Pathari Sanischare Gold Cup</b><br>
-      <span style="color:#888;font-size:13px">Official Ticketing System</span>
-    </p>
-  </div>
-</body></html>
-"""
 
     # related: HTML + inline ticket images (looks like real ticket in mail client)
     msg_root = MIMEMultipart('mixed')
@@ -359,39 +450,36 @@ Official Ticketing System
         return False
 
 
+
 def send_booking_rejected_email(booking):
     """Notify buyer that booking was rejected with reason."""
     to = (booking.buyer_email or '').strip()
     if not to:
         return False
-    cfg = _mail_cfg()
-    if not cfg.get('username') or not cfg.get('password') or not cfg.get('sender'):
-        return False
     reason = (booking.rejection_reason or 'No reason provided.').strip()
-    subject = f'Booking {booking.booking_code} — Not approved'
-    body = (
-        f'Dear {booking.buyer_name},' + chr(10) + chr(10)
-        + f'Your booking {booking.booking_code} was not approved.' + chr(10) + chr(10)
-        + f'Reason: {reason}' + chr(10) + chr(10)
-        + 'If you have questions, contact the organizers.' + chr(10) + chr(10)
-        + '— Pathari Gold Cup' + chr(10)
+    name = booking.buyer_name or 'Guest'
+    code = booking.booking_code
+    stamp = _nepal_stamp()
+    subject = f'Booking {code} - Not approved'
+    nl = chr(10)
+    text_body = (
+        f'Dear {name},' + nl + nl
+        + f'Your booking {code} was not approved.' + nl + nl
+        + f'Reason: {reason}' + nl + nl
+        + f'Time: {stamp}' + nl + nl
+        + 'This is an auto-generated email. Please do not reply.' + nl
     )
-    try:
-        from email.mime.text import MIMEText
-        import smtplib
-        msg = MIMEText(body, 'plain', 'utf-8')
-        msg['Subject'] = subject
-        msg['From'] = cfg['sender']
-        msg['To'] = to
-        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=12) as s:
-            if cfg['use_tls']:
-                s.starttls()
-            s.login(cfg['username'], cfg['password'])
-            s.sendmail(cfg['sender'], [to], msg.as_string())
-        return True
-    except Exception as e:
-        current_app.logger.warning('reject email failed: %s', e)
-        return False
+    inner = (
+        f'<p>Dear <strong>{name}</strong>,</p>'
+        f'<p>Your booking <strong style="color:#ffd56a">{code}</strong> was '
+        f'<strong style="color:#ef9a9a">not approved</strong>.</p>'
+        f'<div style="margin:16px 0;padding:14px 16px;background:#2a1212;border-radius:12px;border:1px solid #e53935;">'
+        f'<div style="color:#8b93a7;font-size:12px;margin-bottom:6px">Reason</div>'
+        f'<div style="color:#f0f2f5">{reason}</div></div>'
+        f'<p style="color:#8b93a7;font-size:13px">Contact organizers through official channels if needed.</p>'
+    )
+    html_body = _email_shell('Booking not approved', inner, badge_text='REJECTED')
+    return _send_html_mail(to, subject, text_body, html_body)
 
 
 def send_booking_received_email(booking):
@@ -400,13 +488,6 @@ def send_booking_received_email(booking):
     if not to:
         current_app.logger.warning('No email for booking received: %s', booking.booking_code)
         return False
-    cfg = _mail_cfg()
-    if not cfg.get('server') or not cfg.get('sender'):
-        current_app.logger.warning('MAIL not configured - booking received email skipped')
-        return False
-    if not cfg.get('username') or not cfg.get('password'):
-        current_app.logger.warning('MAIL credentials missing')
-        return False
 
     match_name = booking.match.display_name if booking.match else 'Match'
     class_name = booking.ticket_class.name if booking.ticket_class else 'Ticket'
@@ -414,66 +495,46 @@ def send_booking_received_email(booking):
     amount = float(booking.total_amount or 0)
     code = booking.booking_code
     name = booking.buyer_name or 'Guest'
+    stamp = _nepal_stamp()
 
     subject = f'Booking received - {code}'
     nl = chr(10)
-    text = (
-        f'Dear {name},' + nl + nl
+    text_body = (
+        'PATHARI SANISCHARE GOLD CUP' + nl
+        + f'Time: {stamp}' + nl + nl
+        + f'Dear {name},' + nl + nl
         + 'Your booking has been received.' + nl + nl
         + f'Booking code: {code}' + nl
         + f'Match: {match_name}' + nl
         + f'Ticket: {class_name} x {qty}' + nl
         + f'Amount: Rs. {amount:.0f}' + nl
         + 'Status: Pending admin approval' + nl + nl
-        + 'We will email your digital ticket (with QR) after payment is confirmed.' + nl
-        + 'You can check status anytime with your booking code and email.' + nl + nl
-        + '- Pathari Gold Cup' + nl
+        + 'We will email your digital ticket after payment is confirmed.' + nl + nl
+        + 'This is an auto-generated email. Please do not reply.' + nl + nl
+        + '- Pathari Sanischare Gold Cup' + nl
     )
 
-    html = (
-        '<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;'
-        'background:#0a0e17;color:#f0f2f5;padding:24px">'
-        '<div style="max-width:520px;margin:0 auto;background:#121a2a;'
-        'border-radius:16px;padding:28px;border:1px solid #c9a227">'
-        '<h1 style="color:#ffd56a;font-size:1.25rem;margin:0 0 12px">Booking received</h1>'
-        f'<p>Dear <strong>{name}</strong>,</p>'
-        '<p>Your booking has been <strong style="color:#81c784">received</strong>.</p>'
-        '<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:0.95rem">'
-        f'<tr><td style="padding:8px 0;color:#8b93a7">Booking code</td>'
-        f'<td style="padding:8px 0;color:#ffd56a;font-weight:700">{code}</td></tr>'
-        f'<tr><td style="padding:8px 0;color:#8b93a7">Match</td>'
-        f'<td style="padding:8px 0">{match_name}</td></tr>'
-        f'<tr><td style="padding:8px 0;color:#8b93a7">Ticket</td>'
-        f'<td style="padding:8px 0">{class_name} x {qty}</td></tr>'
-        f'<tr><td style="padding:8px 0;color:#8b93a7">Amount</td>'
-        f'<td style="padding:8px 0">Rs. {amount:.0f}</td></tr>'
-        '<tr><td style="padding:8px 0;color:#8b93a7">Status</td>'
-        '<td style="padding:8px 0">Pending approval</td></tr>'
-        '</table>'
-        '<p style="color:#8b93a7;font-size:0.9rem">'
-        'After admin confirms payment, you will receive another email with your '
-        'digital ticket and QR code.</p>'
-        '<p style="color:#666;font-size:0.8rem;margin:24px 0 0">- Pathari Gold Cup</p>'
-        '</div></body></html>'
+    inner = (
+        f'<p style="margin:0 0 14px">Dear <strong>{name}</strong>,</p>'
+        f'<p style="margin:0 0 18px">Your booking has been '
+        f'<strong style="color:#81c784">received</strong> successfully.</p>'
+        f'<table width="100%" cellspacing="0" cellpadding="0" style="background:#121a2a;border-radius:12px;border:1px solid #243044;">'
+        f'<tr><td style="padding:14px 16px;color:#8b93a7;font-size:13px">Booking code</td>'
+        f'<td style="padding:14px 16px;color:#ffd56a;font-weight:bold;font-size:15px">{code}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Match</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044">{match_name}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Ticket</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044">{class_name} x {qty}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Amount</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044">Rs. {amount:.0f}</td></tr>'
+        f'<tr><td style="padding:10px 16px;color:#8b93a7;font-size:13px;border-top:1px solid #243044">Status</td>'
+        f'<td style="padding:10px 16px;border-top:1px solid #243044;color:#ffcc80">Pending approval</td></tr>'
+        f'</table>'
+        f'<p style="margin:18px 0 0;color:#8b93a7;font-size:13px">'
+        f'After admin confirms payment, you will receive another email with your digital ticket and QR code.</p>'
     )
-
-    try:
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        import smtplib
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = cfg['sender']
-        msg['To'] = to
-        msg.attach(MIMEText(text, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html, 'html', 'utf-8'))
-        with smtplib.SMTP(cfg['server'], cfg['port'], timeout=15) as s:
-            if cfg.get('use_tls'):
-                s.starttls()
-            s.login(cfg['username'], cfg['password'])
-            s.sendmail(cfg['sender'], [to], msg.as_string())
+    html_body = _email_shell('Booking received', inner, badge_text='BOOKING RECEIVED')
+    ok = _send_html_mail(to, subject, text_body, html_body)
+    if ok:
         current_app.logger.info('Booking received email sent to %s for %s', to, code)
-        return True
-    except Exception as e:
-        current_app.logger.warning('Booking received email failed: %s', e)
-        return False
+    return ok
